@@ -3,7 +3,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Textarea } from "@/components/ui/textarea";
-import { Share, Download, Copy, Check, Edit3, RefreshCw } from 'lucide-react';
+import { Share, Download, Copy, Check, Edit3, RefreshCw, AlertCircle } from 'lucide-react';
 import { generateCaptions, GeneratedCaption } from '@/services/openaiService';
 import { toast } from "sonner";
 import html2canvas from 'html2canvas';
@@ -34,19 +34,32 @@ const GeneratedCaptions: React.FC<GeneratedCaptionsProps> = ({
   const [editedCaption, setEditedCaption] = useState<string>('');
   const [isCopied, setIsCopied] = useState<boolean>(false);
   const [isEditing, setIsEditing] = useState<boolean>(false);
+  const [error, setError] = useState<string | null>(null);
   const previewRef = useRef<HTMLDivElement>(null);
   
   // Fetch captions on component mount
   useEffect(() => {
-    if (!isGenerating) {
-      handleGenerateCaptions();
-    }
+    const generateInitialCaptions = async () => {
+      if (!isGenerating) {
+        await handleGenerateCaptions();
+      }
+    };
+    
+    generateInitialCaptions();
   }, []);
 
   const handleGenerateCaptions = async () => {
     setIsGenerating(true);
+    setError(null);
     
     try {
+      console.log("Generating captions with inputs:", {
+        platform: selectedPlatform,
+        tone: selectedTone,
+        niche: selectedNiche,
+        goal: selectedGoal
+      });
+      
       const captions = await generateCaptions(
         selectedPlatform,
         selectedTone,
@@ -54,14 +67,18 @@ const GeneratedCaptions: React.FC<GeneratedCaptionsProps> = ({
         selectedGoal
       );
       
-      if (captions && captions.captions.length > 0) {
+      if (captions && captions.captions && captions.captions.length > 0) {
         setGeneratedCaptions(captions.captions);
         setSelectedCaptionIndex(0);
         setEditedCaption(formatCaption(captions.captions[0]));
         toast.success("Captions generated successfully!");
+      } else {
+        setError("No captions were generated. Please try again.");
+        toast.error("Failed to generate captions. Please try again.");
       }
     } catch (error) {
-      console.error("Error generating captions:", error);
+      console.error("Error in component when generating captions:", error);
+      setError("Failed to generate captions. Please check console for details.");
       toast.error("Failed to generate captions. Please try again.");
     } finally {
       setIsGenerating(false);
@@ -305,6 +322,19 @@ const GeneratedCaptions: React.FC<GeneratedCaptionsProps> = ({
                 <RefreshCw className="h-8 w-8 animate-spin mx-auto mb-4 text-primary" />
                 <p>Generating captions for your content...</p>
                 <p className="text-xs text-gray-500 mt-2">This may take a few moments</p>
+              </div>
+            ) : error ? (
+              <div className="text-center text-red-500">
+                <AlertCircle className="h-8 w-8 mx-auto mb-4" />
+                <p>{error}</p>
+                <p className="text-xs mt-2">Check the console for more details or try again</p>
+                <Button 
+                  onClick={handleGenerateCaptions} 
+                  className="mt-4"
+                  variant="outline"
+                >
+                  Try Again
+                </Button>
               </div>
             ) : (
               <div className="text-center">
