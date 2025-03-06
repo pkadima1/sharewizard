@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useRef } from 'react';
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -37,15 +36,11 @@ const GeneratedCaptions: React.FC<GeneratedCaptionsProps> = ({
   const [error, setError] = useState<string | null>(null);
   const previewRef = useRef<HTMLDivElement>(null);
   
-  // Fetch captions on component mount
+  // Fetch captions when component mounts
   useEffect(() => {
-    const generateInitialCaptions = async () => {
-      if (!isGenerating) {
-        await handleGenerateCaptions();
-      }
-    };
-    
-    generateInitialCaptions();
+    if (!isGenerating) {
+      handleGenerateCaptions();
+    }
   }, []);
 
   const handleGenerateCaptions = async () => {
@@ -53,27 +48,29 @@ const GeneratedCaptions: React.FC<GeneratedCaptionsProps> = ({
     setError(null);
     
     try {
-      console.log("Generating captions with inputs:", {
+      console.log("Starting caption generation with inputs:", {
         platform: selectedPlatform,
         tone: selectedTone,
         niche: selectedNiche,
         goal: selectedGoal
       });
       
-      const captions = await generateCaptions(
+      const result = await generateCaptions(
         selectedPlatform,
         selectedTone,
         selectedNiche,
         selectedGoal
       );
       
-      if (captions && captions.captions && captions.captions.length > 0) {
-        setGeneratedCaptions(captions.captions);
+      console.log("Generation result:", result);
+      
+      if (result && result.captions && result.captions.length > 0) {
+        setGeneratedCaptions(result.captions);
         setSelectedCaptionIndex(0);
-        setEditedCaption(formatCaption(captions.captions[0]));
+        setEditedCaption(formatCaption(result.captions[0]));
         toast.success("Captions generated successfully!");
       } else {
-        setError("No captions were generated. Please try again.");
+        setError("No captions were generated. Please check the console for details and try again.");
         toast.error("Failed to generate captions. Please try again.");
       }
     } catch (error) {
@@ -107,7 +104,6 @@ const GeneratedCaptions: React.FC<GeneratedCaptionsProps> = ({
   };
 
   const handleShareCaption = async () => {
-    // Check if Web Share API is available
     if (navigator.share) {
       try {
         let shareData: any = {
@@ -115,10 +111,8 @@ const GeneratedCaptions: React.FC<GeneratedCaptionsProps> = ({
           text: editedCaption
         };
 
-        // If we have media and it's shareable
         if (selectedMedia && previewUrl) {
           try {
-            // Try to create a share image with caption
             const imageBlob = await createShareImage();
             if (imageBlob) {
               const file = new File([imageBlob], "caption-image.png", { type: "image/png" });
@@ -126,7 +120,6 @@ const GeneratedCaptions: React.FC<GeneratedCaptionsProps> = ({
             }
           } catch (error) {
             console.error("Error creating share image:", error);
-            // If we can't create a share image, just share the text
           }
         }
 
@@ -167,7 +160,6 @@ const GeneratedCaptions: React.FC<GeneratedCaptionsProps> = ({
       const imageBlob = await createShareImage();
       
       if (imageBlob) {
-        // Create download link
         const url = URL.createObjectURL(imageBlob);
         const a = document.createElement('a');
         a.href = url;
@@ -186,12 +178,10 @@ const GeneratedCaptions: React.FC<GeneratedCaptionsProps> = ({
   };
 
   const getWatermark = () => {
-    // Add your premium user logic here
     const isPremiumUser = false;
     return !isPremiumUser ? "Created with EngagePerfect.com" : "";
   };
 
-  // Platform-specific templates with CSS
   const getTemplateStyles = () => {
     switch (selectedPlatform) {
       case 'instagram':
@@ -213,7 +203,6 @@ const GeneratedCaptions: React.FC<GeneratedCaptionsProps> = ({
 
   return (
     <div className="p-6 grid grid-cols-1 lg:grid-cols-2 gap-6">
-      {/* Caption Options */}
       <div className="space-y-6">
         <div className="flex items-center justify-between mb-4">
           <h3 className="text-lg font-semibold text-gray-800 dark:text-white">
@@ -351,7 +340,6 @@ const GeneratedCaptions: React.FC<GeneratedCaptionsProps> = ({
         )}
       </div>
 
-      {/* Preview & Sharing */}
       <div className="space-y-6">
         <div className="flex items-center justify-between mb-4">
           <h3 className="text-lg font-semibold text-gray-800 dark:text-white">
@@ -366,7 +354,6 @@ const GeneratedCaptions: React.FC<GeneratedCaptionsProps> = ({
           ref={previewRef}
           className={`border rounded-lg overflow-hidden shadow-md ${getTemplateStyles()}`}
         >
-          {/* Media Preview */}
           <div className="bg-white dark:bg-gray-900 aspect-square flex items-center justify-center overflow-hidden">
             {previewUrl ? (
               <>
@@ -391,11 +378,9 @@ const GeneratedCaptions: React.FC<GeneratedCaptionsProps> = ({
             )}
           </div>
           
-          {/* Caption Preview */}
           <div className="p-4 whitespace-pre-wrap text-sm">
             {editedCaption}
             
-            {/* Watermark */}
             {getWatermark() && (
               <div className="text-xs opacity-60 mt-4 text-right">
                 {getWatermark()}

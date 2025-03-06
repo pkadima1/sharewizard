@@ -1,5 +1,6 @@
 
 import { toast } from "sonner";
+import OpenAI from "openai";
 
 export interface GeneratedCaption {
   title: string;
@@ -27,16 +28,19 @@ export const generateCaptions = async (
       console.error("OpenAI API key is missing");
       return null;
     }
-
-    if (apiKey.startsWith('sk-proj-')) {
-      toast.error("You're using a project-level API key. Please use a personal API key instead.");
-      console.error("Project-level API key detected. OpenAI requires personal API keys for this endpoint.");
-      return null;
-    }
-
+    
     console.log("Generating captions with parameters:", { platform, tone, niche, goal, postIdea });
+    
+    // Initialize the OpenAI client
+    const openai = new OpenAI({
+      apiKey: apiKey,
+      dangerouslyAllowBrowser: true // Allow client-side usage
+    });
 
-    const prompt = `
+    // Prepare system and user prompts
+    const systemPrompt = "You are an expert social media content creator who specializes in crafting engaging captions.";
+    
+    const userPrompt = `
       You are the world's best content creator and digital, Social Media marketing, and sales expert with over 20 years of hands-on experience. Create 3 highly engaging ${tone} captions for ${platform} about '${postIdea || niche}'.
 
       Each caption must adhere strictly to the following structure:
@@ -77,56 +81,43 @@ export const generateCaptions = async (
       }
     `;
 
-    console.log("Sending request to OpenAI API...");
+    console.log("Calling OpenAI API...");
     
-    const response = await fetch("https://api.openai.com/v1/chat/completions", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "Authorization": `Bearer ${apiKey}`
-      },
-      body: JSON.stringify({
-        model: "gpt-4o-mini",
-        messages: [
-          {
-            role: "system",
-            content: "You are an expert social media content creator who specializes in crafting engaging captions."
-          },
-          {
-            role: "user",
-            content: prompt
-          }
-        ],
-        temperature: 0.7,
-        max_tokens: 1500
-      })
+    // Make the API call using the OpenAI client
+    const completion = await openai.chat.completions.create({
+      model: "gpt-4o-mini",
+      messages: [
+        {
+          role: "system",
+          content: systemPrompt
+        },
+        {
+          role: "user",
+          content: userPrompt
+        }
+      ],
+      temperature: 0.7,
+      max_tokens: 1500,
+      response_format: { type: "json_object" }
     });
 
-    console.log("Response status:", response.status);
+    console.log("OpenAI API response received:", completion);
     
-    if (!response.ok) {
-      const errorData = await response.json();
-      console.error("OpenAI API error:", errorData);
-      const errorMessage = errorData.error?.message || "Failed to generate captions";
-      toast.error(`API Error: ${errorMessage}`);
-      throw new Error(errorMessage);
-    }
-
-    const data = await response.json();
-    console.log("OpenAI response received:", data);
+    // Extract and parse the content
+    const content = completion.choices[0].message.content;
     
-    let content = data.choices[0].message.content;
-    
-    // Ensure we get valid JSON by removing any markdown formatting
-    if (content.includes("```json")) {
-      content = content.split("```json")[1].split("```")[0].trim();
-    } else if (content.includes("```")) {
-      content = content.split("```")[1].split("```")[0].trim();
+    if (!content) {
+      throw new Error("No content received from OpenAI");
     }
     
     try {
       const parsedContent: CaptionResponse = JSON.parse(content);
       console.log("Successfully parsed response:", parsedContent);
+      
+      if (!parsedContent.captions || !Array.isArray(parsedContent.captions)) {
+        throw new Error("Invalid response format: missing captions array");
+      }
+      
       return parsedContent;
     } catch (parseError) {
       console.error("JSON parse error:", parseError);
@@ -135,8 +126,24 @@ export const generateCaptions = async (
       return null;
     }
   } catch (error) {
+    // Detailed error handling
     console.error("Error generating captions:", error);
-    toast.error("Failed to generate captions. Please try again.");
+    
+    if (error instanceof Error) {
+      // Check for common OpenAI API errors
+      if (error.message.includes("API key")) {
+        toast.error("Invalid OpenAI API key. Please check your environment variables.");
+      } else if (error.message.includes("rate limit")) {
+        toast.error("OpenAI API rate limit exceeded. Please try again later.");
+      } else if (error.message.includes("billing")) {
+        toast.error("OpenAI API billing issue. Please check your OpenAI account.");
+      } else {
+        toast.error(`Error: ${error.message}`);
+      }
+    } else {
+      toast.error("Failed to generate captions. Please try again.");
+    }
+    
     return null;
   }
 };
