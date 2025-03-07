@@ -1,11 +1,14 @@
-import React, { useState, useEffect, useRef } from 'react';
+
+import React, { useState, useEffect } from 'react';
 import { Button } from "@/components/ui/button";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Textarea } from "@/components/ui/textarea";
-import { Share, Download, Copy, Check, Edit3, RefreshCw, AlertCircle } from 'lucide-react';
-import { generateCaptions, GeneratedCaption } from '@/services/openaiService';
 import { toast } from "sonner";
-import html2canvas from 'html2canvas';
+import { generateCaptions, CaptionResponse, GeneratedCaption } from '@/services/openaiService';
+import { useAuth } from '@/contexts/AuthContext';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
+import { CopyToClipboard, ShareToSocial, SaveAsFavorite } from '@/components/ui/actions';
+import { Skeleton } from "@/components/ui/skeleton";
+import { AlertCircle } from 'lucide-react';
 
 interface GeneratedCaptionsProps {
   selectedMedia: File | null;
@@ -15,7 +18,8 @@ interface GeneratedCaptionsProps {
   selectedGoal: string;
   selectedTone: string;
   isGenerating: boolean;
-  setIsGenerating: (value: boolean) => void;
+  setIsGenerating: React.Dispatch<React.SetStateAction<boolean>>;
+  postIdea?: string;
 }
 
 const GeneratedCaptions: React.FC<GeneratedCaptionsProps> = ({
@@ -26,401 +30,249 @@ const GeneratedCaptions: React.FC<GeneratedCaptionsProps> = ({
   selectedGoal,
   selectedTone,
   isGenerating,
-  setIsGenerating
+  setIsGenerating,
+  postIdea
 }) => {
-  const [generatedCaptions, setGeneratedCaptions] = useState<GeneratedCaption[]>([]);
-  const [selectedCaptionIndex, setSelectedCaptionIndex] = useState<number>(0);
-  const [editedCaption, setEditedCaption] = useState<string>('');
-  const [isCopied, setIsCopied] = useState<boolean>(false);
-  const [isEditing, setIsEditing] = useState<boolean>(false);
+  const [captions, setCaptions] = useState<GeneratedCaption[]>([]);
+  const [selectedCaption, setSelectedCaption] = useState<number>(0);
   const [error, setError] = useState<string | null>(null);
-  const previewRef = useRef<HTMLDivElement>(null);
-  
-  // Fetch captions when component mounts
+  const { incrementRequestUsage } = useAuth();
+
   useEffect(() => {
-    if (!isGenerating) {
-      handleGenerateCaptions();
-    }
-  }, []);
+    const fetchCaptions = async () => {
+      if (!isGenerating) return;
 
-  const handleGenerateCaptions = async () => {
-    setIsGenerating(true);
-    setError(null);
-    
-    try {
-      console.log("Starting caption generation with inputs:", {
-        platform: selectedPlatform,
-        tone: selectedTone,
-        niche: selectedNiche,
-        goal: selectedGoal
-      });
-      
-      const result = await generateCaptions(
-        selectedPlatform,
-        selectedTone,
-        selectedNiche,
-        selectedGoal
-      );
-      
-      console.log("Generation result:", result);
-      
-      if (result && result.captions && result.captions.length > 0) {
-        setGeneratedCaptions(result.captions);
-        setSelectedCaptionIndex(0);
-        setEditedCaption(formatCaption(result.captions[0]));
-        toast.success("Captions generated successfully!");
-      } else {
-        setError("No captions were generated. Please check the console for details and try again.");
-        toast.error("Failed to generate captions. Please try again.");
-      }
-    } catch (error) {
-      console.error("Error in component when generating captions:", error);
-      setError("Failed to generate captions. Please check console for details.");
-      toast.error("Failed to generate captions. Please try again.");
-    } finally {
-      setIsGenerating(false);
-    }
-  };
-
-  const formatCaption = (caption: GeneratedCaption): string => {
-    const hashtagsFormatted = caption.hashtags.map(tag => `#${tag}`).join(' ');
-    return `${caption.title}\n\n${caption.caption}\n\n${caption.cta}\n\n${hashtagsFormatted}`;
-  };
-
-  const handleCaptionSelect = (index: number) => {
-    setSelectedCaptionIndex(index);
-    setEditedCaption(formatCaption(generatedCaptions[index]));
-    setIsEditing(false);
-  };
-
-  const handleCopyCaption = () => {
-    navigator.clipboard.writeText(editedCaption);
-    setIsCopied(true);
-    toast.success("Caption copied to clipboard!");
-    
-    setTimeout(() => {
-      setIsCopied(false);
-    }, 2000);
-  };
-
-  const handleShareCaption = async () => {
-    if (navigator.share) {
       try {
-        let shareData: any = {
-          title: "My Social Media Post",
-          text: editedCaption
-        };
-
-        if (selectedMedia && previewUrl) {
-          try {
-            const imageBlob = await createShareImage();
-            if (imageBlob) {
-              const file = new File([imageBlob], "caption-image.png", { type: "image/png" });
-              shareData.files = [file];
-            }
-          } catch (error) {
-            console.error("Error creating share image:", error);
-          }
-        }
-
-        await navigator.share(shareData);
-        toast.success("Shared successfully!");
-      } catch (error) {
-        console.error("Error sharing:", error);
-        toast.error("Sharing failed. Try downloading instead.");
-      }
-    } else {
-      toast.error("Web Share API not supported on this device. Try downloading instead.");
-    }
-  };
-
-  const createShareImage = async (): Promise<Blob | null> => {
-    if (!previewRef.current) return null;
-    
-    try {
-      const canvas = await html2canvas(previewRef.current, {
-        scale: 2,
-        logging: false,
-        useCORS: true
-      });
-      
-      return new Promise((resolve) => {
-        canvas.toBlob((blob) => {
-          resolve(blob);
-        }, 'image/png', 0.95);
-      });
-    } catch (error) {
-      console.error("Error creating image:", error);
-      return null;
-    }
-  };
-
-  const handleDownloadImage = async () => {
-    try {
-      const imageBlob = await createShareImage();
-      
-      if (imageBlob) {
-        const url = URL.createObjectURL(imageBlob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = `${selectedPlatform}-post.png`;
-        document.body.appendChild(a);
-        a.click();
-        document.body.removeChild(a);
-        URL.revokeObjectURL(url);
+        setError(null);
         
-        toast.success("Image downloaded successfully!");
+        // Check if user can make this request
+        const canProceed = await incrementRequestUsage();
+        
+        if (!canProceed) {
+          setIsGenerating(false);
+          setError("You've reached your request limit. Please upgrade your plan to continue.");
+          return;
+        }
+        
+        // Generate captions
+        const captionResponse = await generateCaptions(
+          selectedPlatform,
+          selectedTone,
+          selectedNiche,
+          selectedGoal,
+          postIdea
+        );
+
+        if (captionResponse && captionResponse.captions) {
+          setCaptions(captionResponse.captions);
+          setSelectedCaption(0);
+          console.log("Captions generated successfully:", captionResponse.captions);
+        } else {
+          setError("Failed to generate captions. Please try again.");
+          console.error("Error fetching captions - empty response");
+        }
+      } catch (err) {
+        console.error("Error fetching captions:", err);
+        setError("An unexpected error occurred. Please try again.");
+      } finally {
+        setIsGenerating(false);
       }
-    } catch (error) {
-      console.error("Error downloading image:", error);
-      toast.error("Failed to download image. Please try again.");
-    }
+    };
+
+    fetchCaptions();
+  }, [isGenerating]);
+
+  const handleRegenerateClick = () => {
+    setCaptions([]);
+    setIsGenerating(true);
   };
 
-  const getWatermark = () => {
-    const isPremiumUser = false;
-    return !isPremiumUser ? "Created with EngagePerfect.com" : "";
-  };
+  if (error) {
+    return (
+      <div className="flex flex-col items-center justify-center p-8 text-center">
+        <div className="bg-red-50 w-16 h-16 rounded-full flex items-center justify-center mb-4">
+          <AlertCircle className="h-8 w-8 text-red-500" />
+        </div>
+        <h3 className="text-xl font-semibold text-gray-900 mb-2">Generation Failed</h3>
+        <p className="text-gray-600 mb-6 max-w-md">{error}</p>
+        <div className="flex gap-3">
+          <Button
+            variant="outline"
+            onClick={() => window.location.reload()}
+          >
+            Start Over
+          </Button>
+          <Button
+            onClick={handleRegenerateClick}
+          >
+            Try Again
+          </Button>
+        </div>
+      </div>
+    );
+  }
 
-  const getTemplateStyles = () => {
-    switch (selectedPlatform) {
-      case 'instagram':
-        return 'bg-gradient-to-r from-purple-500 to-pink-500 text-white';
-      case 'facebook':
-        return 'bg-blue-600 text-white';
-      case 'twitter':
-        return 'bg-blue-400 text-white';
-      case 'linkedin':
-        return 'bg-blue-700 text-white';
-      case 'tiktok':
-        return 'bg-black text-white';
-      case 'youtube':
-        return 'bg-red-600 text-white';
-      default:
-        return 'bg-gray-100 dark:bg-gray-800';
-    }
-  };
+  if (isGenerating) {
+    return (
+      <div className="w-full max-w-4xl mx-auto p-6">
+        <div className="flex mb-8">
+          {previewUrl && (
+            <div className="w-1/3 pr-6">
+              <div className="aspect-square bg-gray-100 rounded-lg overflow-hidden">
+                {selectedMedia && selectedMedia.type.startsWith('image') ? (
+                  <img src={previewUrl} alt="Preview" className="w-full h-full object-cover" />
+                ) : (
+                  <div className="flex items-center justify-center h-full bg-gray-200">
+                    <span className="text-gray-500">Media preview</span>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+          <div className={`${previewUrl ? 'w-2/3' : 'w-full'}`}>
+            <h2 className="text-xl font-semibold mb-4">Generating Captions...</h2>
+            <div className="space-y-6">
+              <div className="space-y-3">
+                <Skeleton className="h-4 w-3/4" />
+                <Skeleton className="h-4 w-full" />
+                <Skeleton className="h-4 w-5/6" />
+                <Skeleton className="h-4 w-2/3" />
+              </div>
+              
+              <div className="space-y-3">
+                <Skeleton className="h-4 w-3/4" />
+                <Skeleton className="h-4 w-full" />
+                <Skeleton className="h-4 w-5/6" />
+                <Skeleton className="h-4 w-2/3" />
+              </div>
+              
+              <div className="space-y-3">
+                <Skeleton className="h-4 w-3/4" />
+                <Skeleton className="h-4 w-full" />
+                <Skeleton className="h-4 w-5/6" />
+                <Skeleton className="h-4 w-2/3" />
+              </div>
+            </div>
+            <div className="mt-6">
+              <p className="text-sm text-gray-500">
+                Creating engaging {selectedTone} captions for {selectedPlatform} 
+                in the {selectedNiche} niche...
+              </p>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (captions.length === 0 && !isGenerating) {
+    return (
+      <div className="flex flex-col items-center justify-center p-8 text-center">
+        <h3 className="text-xl font-semibold text-gray-900 mb-2">No Captions Generated</h3>
+        <p className="text-gray-600 mb-6">Click the button below to generate captions for your content.</p>
+        <Button onClick={handleRegenerateClick}>Generate Captions</Button>
+      </div>
+    );
+  }
 
   return (
-    <div className="p-6 grid grid-cols-1 lg:grid-cols-2 gap-6">
-      <div className="space-y-6">
-        <div className="flex items-center justify-between mb-4">
-          <h3 className="text-lg font-semibold text-gray-800 dark:text-white">
-            Generated Captions
-          </h3>
-          <Button 
-            variant="outline" 
-            size="sm"
-            onClick={handleGenerateCaptions}
-            disabled={isGenerating}
-            className="flex items-center gap-2"
-          >
-            {isGenerating ? (
-              <>
-                <RefreshCw className="h-4 w-4 animate-spin" />
-                Generating...
-              </>
-            ) : (
-              <>
-                <RefreshCw className="h-4 w-4" />
-                Regenerate
-              </>
-            )}
-          </Button>
-        </div>
-
-        {generatedCaptions.length > 0 ? (
-          <Tabs defaultValue="0" className="w-full">
-            <TabsList className="w-full">
-              <TabsTrigger value="0" onClick={() => handleCaptionSelect(0)}>Caption 1</TabsTrigger>
-              <TabsTrigger value="1" onClick={() => handleCaptionSelect(1)}>Caption 2</TabsTrigger>
-              <TabsTrigger value="2" onClick={() => handleCaptionSelect(2)}>Caption 3</TabsTrigger>
-            </TabsList>
-            
-            {generatedCaptions.map((caption, index) => (
-              <TabsContent key={index} value={index.toString()} className="mt-4">
-                <div className="border rounded-lg p-4 shadow-sm bg-white dark:bg-gray-800">
-                  <h4 className="font-medium mb-2">{caption.title}</h4>
-                  <p className="text-sm text-gray-600 dark:text-gray-300 mb-3">{caption.caption}</p>
-                  <p className="text-sm text-primary font-medium mb-3">{caption.cta}</p>
-                  <div className="flex flex-wrap gap-2">
-                    {caption.hashtags.map((tag, tagIndex) => (
-                      <span 
-                        key={tagIndex} 
-                        className="text-xs bg-gray-100 dark:bg-gray-700 px-2 py-1 rounded"
-                      >
-                        #{tag}
-                      </span>
-                    ))}
-                  </div>
-                </div>
-              </TabsContent>
-            ))}
-            
-            <div className="mt-6 space-y-4">
-              <div className="flex justify-between items-center">
-                <h4 className="font-medium">
-                  {isEditing ? "Edit Caption" : "Selected Caption"}
-                </h4>
-                <Button 
-                  variant="ghost" 
-                  size="sm" 
-                  onClick={() => setIsEditing(!isEditing)}
-                  className="h-8"
-                >
-                  {isEditing ? "Preview" : <Edit3 className="h-4 w-4" />}
-                </Button>
-              </div>
-              
-              {isEditing ? (
-                <Textarea
-                  value={editedCaption}
-                  onChange={(e) => setEditedCaption(e.target.value)}
-                  className="min-h-[200px] w-full"
-                  placeholder="Edit your caption here..."
+    <div className="w-full max-w-4xl mx-auto p-6">
+      <div className="flex flex-col md:flex-row mb-8 gap-6">
+        {previewUrl && (
+          <div className="md:w-1/3">
+            <div className="aspect-square bg-gray-100 rounded-lg overflow-hidden sticky top-6">
+              {selectedMedia && selectedMedia.type.startsWith('image') ? (
+                <img 
+                  src={previewUrl} 
+                  alt="Preview" 
+                  className="w-full h-full object-cover" 
                 />
               ) : (
-                <div className="border rounded-lg p-4 min-h-[200px] whitespace-pre-wrap text-sm">
-                  {editedCaption}
+                <div className="flex items-center justify-center h-full bg-gray-200">
+                  <span className="text-gray-500">Media preview</span>
                 </div>
               )}
-              
-              <Button 
-                onClick={handleCopyCaption} 
-                variant="outline" 
-                className="w-full flex items-center justify-center gap-2"
-              >
-                {isCopied ? (
-                  <>
-                    <Check className="h-4 w-4" />
-                    Copied!
-                  </>
-                ) : (
-                  <>
-                    <Copy className="h-4 w-4" />
-                    Copy Caption
-                  </>
-                )}
-              </Button>
             </div>
-          </Tabs>
-        ) : (
-          <div className="flex items-center justify-center h-40 border rounded-lg">
-            {isGenerating ? (
-              <div className="text-center">
-                <RefreshCw className="h-8 w-8 animate-spin mx-auto mb-4 text-primary" />
-                <p>Generating captions for your content...</p>
-                <p className="text-xs text-gray-500 mt-2">This may take a few moments</p>
-              </div>
-            ) : error ? (
-              <div className="text-center text-red-500">
-                <AlertCircle className="h-8 w-8 mx-auto mb-4" />
-                <p>{error}</p>
-                <p className="text-xs mt-2">Check the console for more details or try again</p>
-                <Button 
-                  onClick={handleGenerateCaptions} 
-                  className="mt-4"
-                  variant="outline"
-                >
-                  Try Again
-                </Button>
-              </div>
-            ) : (
-              <div className="text-center">
-                <p>No captions generated yet</p>
-                <Button 
-                  onClick={handleGenerateCaptions} 
-                  className="mt-4"
-                >
-                  Generate Captions
-                </Button>
-              </div>
-            )}
           </div>
         )}
-      </div>
-
-      <div className="space-y-6">
-        <div className="flex items-center justify-between mb-4">
-          <h3 className="text-lg font-semibold text-gray-800 dark:text-white">
-            Preview & Share
-          </h3>
-          <div className="text-sm text-gray-500 dark:text-gray-400">
-            {selectedPlatform.charAt(0).toUpperCase() + selectedPlatform.slice(1)}
-          </div>
-        </div>
-
-        <div 
-          ref={previewRef}
-          className={`border rounded-lg overflow-hidden shadow-md ${getTemplateStyles()}`}
-        >
-          <div className="bg-white dark:bg-gray-900 aspect-square flex items-center justify-center overflow-hidden">
-            {previewUrl ? (
-              <>
-                {selectedMedia?.type.startsWith('video/') ? (
-                  <video 
-                    src={previewUrl} 
-                    controls={false}
-                    className="max-h-full max-w-full object-contain"
-                  />
-                ) : (
-                  <img 
-                    src={previewUrl} 
-                    alt="Preview" 
-                    className="max-h-full max-w-full object-contain"
-                  />
-                )}
-              </>
-            ) : (
-              <div className="text-center text-gray-400 p-6">
-                <p>No media uploaded</p>
-              </div>
-            )}
+        
+        <div className={`${previewUrl ? 'md:w-2/3' : 'w-full'}`}>
+          <div className="flex justify-between items-center mb-6">
+            <h2 className="text-xl font-semibold">Generated Captions</h2>
+            <Button 
+              variant="outline" 
+              size="sm"
+              onClick={handleRegenerateClick}
+            >
+              Regenerate
+            </Button>
           </div>
           
-          <div className="p-4 whitespace-pre-wrap text-sm">
-            {editedCaption}
+          <Tabs defaultValue="0" className="w-full" onValueChange={(value) => setSelectedCaption(parseInt(value))}>
+            <TabsList className="grid grid-cols-3 mb-6">
+              <TabsTrigger value="0">Caption 1</TabsTrigger>
+              <TabsTrigger value="1">Caption 2</TabsTrigger>
+              <TabsTrigger value="2">Caption 3</TabsTrigger>
+            </TabsList>
             
-            {getWatermark() && (
-              <div className="text-xs opacity-60 mt-4 text-right">
-                {getWatermark()}
-              </div>
-            )}
-          </div>
-        </div>
-
-        <div className="flex gap-3">
-          <Button 
-            onClick={handleShareCaption}
-            className="flex-1 flex items-center justify-center gap-2"
-          >
-            <Share className="h-4 w-4" />
-            Share
-          </Button>
-          <Button 
-            onClick={handleDownloadImage}
-            variant="outline" 
-            className="flex-1 flex items-center justify-center gap-2"
-          >
-            <Download className="h-4 w-4" />
-            Download
-          </Button>
-        </div>
-
-        <div className="text-sm text-gray-500 dark:text-gray-400 border rounded-lg p-4 bg-gray-50 dark:bg-gray-800/50">
-          <h4 className="font-medium mb-2">Sharing Tips</h4>
-          {selectedPlatform === 'instagram' && (
-            <p>For Instagram, download the image and upload it through the Instagram app.</p>
-          )}
-          {selectedPlatform === 'tiktok' && (
-            <p>For TikTok, download the image and add it to your TikTok post through the app.</p>
-          )}
-          {selectedPlatform === 'twitter' && (
-            <p>You can directly share to Twitter using the Share button if your device supports it.</p>
-          )}
-          {selectedPlatform === 'facebook' && (
-            <p>You can directly share to Facebook using the Share button or download and upload manually.</p>
-          )}
+            {captions.map((caption, index) => (
+              <TabsContent key={index} value={index.toString()} className="space-y-4">
+                <Card>
+                  <CardHeader>
+                    <CardTitle>{caption.title}</CardTitle>
+                    <CardDescription>
+                      Platform: {selectedPlatform} • Tone: {selectedTone}
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="space-y-4">
+                      <div>
+                        <h4 className="text-sm font-medium mb-1">Caption</h4>
+                        <p className="text-gray-700 whitespace-pre-line">{caption.caption}</p>
+                      </div>
+                      
+                      <div>
+                        <h4 className="text-sm font-medium mb-1">Call-to-Action</h4>
+                        <p className="text-gray-700">{caption.cta}</p>
+                      </div>
+                      
+                      <div>
+                        <h4 className="text-sm font-medium mb-1">Hashtags</h4>
+                        <div className="flex flex-wrap gap-2">
+                          {caption.hashtags.map((hashtag, idx) => (
+                            <span key={idx} className="bg-gray-100 px-2 py-1 rounded text-sm">
+                              #{hashtag}
+                            </span>
+                          ))}
+                        </div>
+                      </div>
+                    </div>
+                  </CardContent>
+                  <CardFooter className="flex justify-between">
+                    <Button 
+                      variant="outline" 
+                      size="sm"
+                      onClick={() => {
+                        const text = `${caption.caption}\n\n${caption.cta}\n\n${caption.hashtags.map(h => `#${h}`).join(' ')}`;
+                        navigator.clipboard.writeText(text);
+                        toast.success("Caption copied to clipboard!");
+                      }}
+                    >
+                      Copy Caption
+                    </Button>
+                    <Button 
+                      size="sm"
+                      onClick={() => {
+                        toast.success(`Caption saved for ${selectedPlatform}!`);
+                      }}
+                    >
+                      Use This Caption
+                    </Button>
+                  </CardFooter>
+                </Card>
+              </TabsContent>
+            ))}
+          </Tabs>
         </div>
       </div>
     </div>

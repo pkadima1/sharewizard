@@ -1,6 +1,7 @@
 
 import { toast } from "sonner";
 import OpenAI from "openai";
+import { useAuth } from "@/contexts/AuthContext";
 
 export interface GeneratedCaption {
   title: string;
@@ -31,56 +32,47 @@ export const generateCaptions = async (
     
     console.log("Generating captions with parameters:", { platform, tone, niche, goal, postIdea });
     
-    // Initialize the OpenAI client with explicit configuration
+    // Initialize the OpenAI client
     const openai = new OpenAI({
-      apiKey,
-      dangerouslyAllowBrowser: true
+      apiKey: apiKey,
+      dangerouslyAllowBrowser: true // Required for client-side usage
     });
 
     // Prepare the content for generation
     const contentToGenerate = postIdea || niche;
     
-    // Create a more structured prompt
-    const systemPrompt = "You are an expert social media content creator specializing in crafting engaging captions.";
+    // Create system and user prompts
+    const systemPrompt = `You are a social media caption generator specializing in creating engaging content for ${platform}. Always respond with exactly 3 captions in JSON format.`;
     
     const userPrompt = `
-      Create 3 highly engaging ${tone} captions for ${platform} about '${contentToGenerate}'.
+      Create 3 engaging ${tone} captions for ${platform} about '${contentToGenerate}'.
 
-      Each caption must have:
-      - title: A concise, catchy title highlighting the main idea.
-      - caption: Engaging, concise caption text without hashtags.
-      - cta: A clear call-to-action for the goal "${goal}".
-      - hashtags: Exactly 5 relevant hashtags for the niche "${niche}" (without # symbol).
+      Format as JSON with these fields for each caption:
+      - title: A brief, catchy title
+      - caption: The main caption text (NO hashtags here)
+      - cta: Call-to-action for "${goal}"
+      - hashtags: Array of 5 relevant hashtags for "${niche}" (without # symbol)
 
-      Additional Instructions:
       ${goal === "Share Knowledge" ? "Start captions with phrases like 'Did you know?', 'Insight:', or 'Fact:'." : ""}
-      Keep captions concise and natural-sounding.
-      DO NOT include hashtags within the caption text.
     `;
 
     console.log("Calling OpenAI API with model: gpt-4o-mini");
     
-    // Make the API call with correct parameters
+    // Make the API call
     const completion = await openai.chat.completions.create({
       model: "gpt-4o-mini",
       messages: [
-        {
-          role: "system",
-          content: systemPrompt
-        },
-        {
-          role: "user",
-          content: userPrompt
-        }
+        { role: "system", content: systemPrompt },
+        { role: "user", content: userPrompt }
       ],
       temperature: 0.7,
-      max_tokens: 1000,
+      max_tokens: 800,
       response_format: { type: "json_object" }
     });
 
-    console.log("OpenAI API response received:", completion);
+    console.log("OpenAI API response received");
     
-    // Extract the content
+    // Extract and validate the content
     const content = completion.choices[0].message.content;
     
     if (!content) {
@@ -109,15 +101,14 @@ export const generateCaptions = async (
       return null;
     }
   } catch (error: any) {
-    // Detailed error handling
+    // Handle specific error types
     console.error("Error generating captions:", error);
     
-    // Handle specific OpenAI API errors
-    if (error?.status === 401) {
-      toast.error("Invalid API key. Please check your OpenAI API key.");
-    } else if (error?.status === 429) {
-      toast.error("Rate limit exceeded. Please try again later.");
-    } else if (error?.status === 500) {
+    if (error?.response?.status === 401) {
+      toast.error("Invalid OpenAI API key. Please check your API key.");
+    } else if (error?.response?.status === 429) {
+      toast.error("OpenAI rate limit exceeded. Please try again later.");
+    } else if (error?.response?.status === 500) {
       toast.error("OpenAI server error. Please try again later.");
     } else if (error.message) {
       toast.error(`Error: ${error.message}`);
