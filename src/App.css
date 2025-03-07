@@ -23,17 +23,26 @@
   to { transform: translateX(0); opacity: 1; }
 }
 
+@keyframes scale-in {
+  from { transform: scale(0.95); opacity: 0; }
+  to { transform: scale(1); opacity: 1; }
+}
+
 /* Animation utility classes */
-.fade-in {
+.animate-fade-in {
   animation: fade-in 0.4s ease-out forwards;
 }
 
-.slide-up {
+.animate-slide-up {
   animation: slide-up 0.5s ease-out forwards;
 }
 
-.slide-in {
+.animate-slide-in {
   animation: slide-in 0.5s ease-out forwards;
+}
+
+.animate-scale-in {
+  animation: scale-in 0.4s ease-out forwards;
 }
 
 /* Responsive containers */
@@ -70,4 +79,38 @@
   .section-padding {
     padding: 6rem 2rem;
   }
+}
+
+/* Mobile-first padding adjustments */
+.mobile-p {
+  padding: 1rem;
+}
+
+@media (min-width: 640px) {
+  .mobile-p {
+    padding: 1.5rem;
+  }
+}
+
+@media (min-width: 768px) {
+  .mobile-p {
+    padding: 2rem;
+  }
+}
+
+/* Premium glass effects */
+.premium-glass {
+  background: rgba(255, 255, 255, 0.1);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+}
+
+.dark .premium-glass {
+  background: rgba(17, 25, 40, 0.75);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.125);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
 }

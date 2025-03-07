@@ -1,3 +1,4 @@
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -88,16 +89,44 @@
     @apply border-border;
   }
 
-  /* Pricing card styles - used in pricing page */
+  /* Glass card effect - updated for better dark mode */
+  .glass-card {
+    @apply rounded-xl border border-white/10 bg-white/5 backdrop-blur-md;
+    @apply shadow-[0_8px_32px_rgba(0,0,0,0.1)];
+    @apply transition-all duration-300;
+  }
+
+  /* Dark mode specific glass card */
+  .dark .glass-card {
+    @apply bg-gray-900/40 border-white/10;
+    @apply shadow-[0_8px_32px_rgba(0,0,0,0.3)];
+    @apply backdrop-blur-xl;
+  }
+
+  /* Pricing card styles */
   .pricing-card {
-    @apply base-card p-6 flex flex-col h-full;
+    @apply rounded-xl border p-5 sm:p-6 flex flex-col h-full;
     @apply bg-card text-card-foreground;
+    @apply transition-all duration-300;
+    @apply border-border/50;
+    @apply shadow-[0_4px_16px_rgba(0,0,0,0.08)];
+  }
+  
+  .dark .pricing-card {
+    @apply bg-gray-900/60 backdrop-blur-md border-white/10;
+    @apply shadow-[0_8px_32px_rgba(0,0,0,0.2)];
   }
   
   /* Popular pricing card with highlight */
   .pricing-card-popular {
-    @apply pricing-card border-primary;
+    @apply pricing-card border-primary/70;
     @apply relative;
+    @apply shadow-[0_10px_30px_rgba(59,130,246,0.15)];
+  }
+
+  .dark .pricing-card-popular {
+    @apply border-primary/70;
+    @apply shadow-[0_10px_30px_rgba(59,130,246,0.15)];
   }
 
   /* Popular badge for pricing card */
@@ -195,7 +224,11 @@
 
   /* Premium gradient background for profile headers */
   .profile-header-gradient {
-    @apply bg-primary/90 text-primary-foreground;
+    @apply bg-gradient-to-r from-blue-600 to-blue-800 text-white;
+  }
+
+  .dark .profile-header-gradient {
+    @apply bg-gradient-to-r from-blue-800 to-indigo-900 text-white;
   }
 
   /* Profile card with premium appearance */
@@ -205,7 +238,15 @@
 
   /* Wizard component enhancements */
   .wizard-card {
-    @apply base-card border-muted;
+    @apply rounded-xl border border-border/50 overflow-hidden;
+    @apply bg-white/80 dark:bg-gray-900/60;
+    @apply backdrop-blur-md;
+    @apply shadow-[0_4px_16px_rgba(0,0,0,0.08)];
+  }
+  
+  .dark .wizard-card {
+    @apply border-white/10;
+    @apply shadow-[0_8px_32px_rgba(0,0,0,0.2)];
   }
   
   /* Wizard step styles */
@@ -225,13 +266,14 @@
 
   /* Niche selector and other wizard inputs for better contrast */
   .niche-item {
-    @apply bg-muted/50 hover:bg-muted border border-border rounded-lg p-4;
+    @apply bg-white dark:bg-gray-800 hover:bg-gray-100 dark:hover:bg-gray-700/80;
+    @apply border border-gray-200 dark:border-gray-700 rounded-lg p-4;
     @apply transition-all cursor-pointer select-none;
   }
   
   /* Selected niche item */
   .niche-item.selected {
-    @apply bg-primary/10 border-primary;
+    @apply bg-primary/10 dark:bg-primary/20 border-primary;
   }
   
   /* Stats card improvements */
@@ -294,11 +336,38 @@
     @apply w-full mt-4;
   }
 
-  /* Media query for touch devices with larger touch targets */
-  @media (pointer: coarse) {
-    .touch-target {
-      @apply min-h-12 min-w-12;
-    }
+  /* Caption generator container */
+  .caption-generator-container {
+    @apply min-h-screen bg-gray-50 dark:bg-gray-900;
+  }
+
+  /* Caption generator header */
+  .caption-generator-header {
+    @apply py-6 px-4 bg-gradient-to-r from-blue-600 to-blue-800 dark:from-blue-800 dark:to-indigo-900;
+  }
+
+  /* Wizard step circles */
+  .step-circle {
+    @apply flex items-center justify-center w-10 h-10 rounded-full;
+    @apply bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300;
+    @apply border-2 border-transparent;
+    @apply font-medium text-sm;
+  }
+
+  .step-circle.active {
+    @apply bg-blue-100 dark:bg-blue-900/50 text-blue-700 dark:text-blue-300;
+    @apply border-blue-500;
+  }
+
+  .step-circle.completed {
+    @apply bg-green-500 dark:bg-green-600 text-white;
+  }
+}
+
+/* Media query for touch devices with larger touch targets */
+@media (pointer: coarse) {
+  .touch-target {
+    @apply min-h-12 min-w-12;
   }
 }
 

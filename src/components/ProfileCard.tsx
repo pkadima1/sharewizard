@@ -3,6 +3,7 @@ import React from 'react';
 import { UserProfile } from '@/types';
 import { formatDate, getDaysRemaining, getSubscriptionBadgeClass } from '@/lib/constants';
 import { Calendar, Mail } from 'lucide-react';
+import { cn } from '@/lib/utils';
 
 interface ProfileCardProps {
   user: UserProfile;
@@ -13,8 +14,8 @@ const ProfileCard: React.FC<ProfileCardProps> = ({ user, onEditProfile }) => {
   const daysRemaining = user.planExpiryDate ? getDaysRemaining(user.planExpiryDate) : null;
   
   return (
-    <div className="profile-card animate-scale-in">
-      <div className="relative h-32 profile-header-gradient">
+    <div className="profile-card animate-scale-in overflow-hidden">
+      <div className="relative h-36 profile-header-gradient">
         <button 
           onClick={onEditProfile}
           className="absolute top-4 right-4 bg-white/20 backdrop-blur-md text-white px-4 py-2 rounded-lg text-sm font-medium transition-all duration-300 hover:bg-white/30 focus:ring-2 focus:ring-white/50 focus:outline-none"
@@ -23,8 +24,8 @@ const ProfileCard: React.FC<ProfileCardProps> = ({ user, onEditProfile }) => {
         </button>
       </div>
       
-      <div className="px-6 pb-6">
-        <div className="flex flex-col sm:flex-row items-start sm:items-center -mt-12 sm:-mt-16 mb-6">
+      <div className="px-4 sm:px-6 pb-6">
+        <div className="flex flex-col sm:flex-row items-start sm:items-center -mt-16 mb-6">
           <div className="relative w-24 h-24 sm:w-32 sm:h-32 rounded-full border-4 border-background shadow-lg overflow-hidden">
             <img 
               src={user.profilePictureUrl} 
@@ -34,11 +35,13 @@ const ProfileCard: React.FC<ProfileCardProps> = ({ user, onEditProfile }) => {
             />
           </div>
           
-          <div className="mt-4 sm:mt-0 sm:ml-6">
-            <h1 className="text-2xl sm:text-3xl font-bold text-foreground">{user.fullName}</h1>
+          <div className="mt-3 sm:mt-0 sm:ml-6">
+            <h1 className="text-2xl sm:text-3xl font-bold text-foreground">
+              {user.fullName}
+            </h1>
             <div className="mt-1 flex items-center space-x-1.5 text-muted-foreground">
               <Mail size={16} />
-              <span>{user.email}</span>
+              <span className="text-sm sm:text-base">{user.email}</span>
             </div>
           </div>
         </div>
@@ -48,7 +51,7 @@ const ProfileCard: React.FC<ProfileCardProps> = ({ user, onEditProfile }) => {
             <div>
               <div className="text-sm text-muted-foreground">Subscription Plan</div>
               <div className="flex items-center mt-1">
-                <span className={`status-badge ${getSubscriptionBadgeClass(user.subscriptionTier)}`}>
+                <span className={cn("status-badge", getSubscriptionBadgeClass(user.subscriptionTier))}>
                   {user.subscriptionTier}
                 </span>
                 
