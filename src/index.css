@@ -1,4 +1,3 @@
-
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -34,7 +33,7 @@
     --sidebar-border: 214.3 31.8% 91.4%;
     --sidebar-ring: 221.2 83.2% 53.3%;
   }
-
+  
   .dark {
     --background: 222.2 84% 4.9%;
     --foreground: 210 40% 98%;
@@ -64,45 +63,117 @@
     --sidebar-border: 217.2 32.6% 17.5%;
     --sidebar-ring: 224.3 76.3% 48%;
   }
-}
 
-/* Additional utility classes */
-.caption-card {
-  @apply border rounded-lg p-4 transition-all cursor-pointer hover:shadow-md;
-  
-  &:hover .copy-button {
-    @apply opacity-100;
+  /* Improve mobile touch targets */
+  button, 
+  a, 
+  [role="button"],
+  input, 
+  select, 
+  textarea {
+    @apply min-h-10 touch-manipulation;
   }
-  
-  &.selected {
-    @apply border-primary bg-primary/5;
+
+  /* Improve focus states for accessibility */
+  :focus-visible {
+    @apply outline-none ring-2 ring-primary ring-offset-2;
   }
 }
 
-.copy-button {
-  @apply opacity-0 transition-opacity;
+/* Mobile-first approach with responsive utilities */
+@layer components {
+  /* Card component with mobile-first design */
+  .caption-card {
+    @apply border rounded-lg p-3 sm:p-4 transition-all cursor-pointer hover:shadow-md w-full relative;
+    
+    /* Improved tap target for mobile */
+    &:active {
+      @apply bg-primary/10;
+    }
+    
+    /* Show copy button on tap for mobile, hover for desktop */
+    &:active .copy-button,
+    &:hover .copy-button {
+      @apply opacity-100;
+    }
+    
+    &.selected {
+      @apply border-primary bg-primary/5;
+    }
+  }
+
+  /* Improved visibility on mobile */
+  .copy-button {
+    @apply opacity-0 transition-opacity absolute top-2 right-2 p-2 rounded-full bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm;
+  }
+
+  /* Responsive container */
+  .preview-container {
+    @apply bg-white dark:bg-gray-900 rounded-lg overflow-hidden shadow-sm w-full;
+  }
+
+  /* Improved mobile caption overlay */
+  .caption-overlay {
+    @apply absolute bottom-0 left-0 right-0 bg-black bg-opacity-70 backdrop-blur-sm p-3 sm:p-4 text-white max-h-[70%] overflow-y-auto;
+  }
+
+  /* More spacing on mobile */
+  .caption-section {
+    @apply space-y-2 sm:space-y-3;
+  }
+
+  /* Better touch targets for hashtags */
+  .hashtag {
+    @apply bg-gray-100 dark:bg-gray-800 px-2 py-1 rounded text-xs text-blue-600 dark:text-blue-400 inline-block mb-1 mr-1;
+  }
+
+  .hashtag-overlay {
+    @apply text-blue-300 text-xs inline-block mr-2 mb-1;
+  }
+
+  /* Improved transition for shared content */
+  #sharable-content {
+    @apply transition-all duration-300 w-full max-w-full overflow-hidden;
+  }
+
+  /* Mobile navigation improvements */
+  .mobile-nav {
+    @apply fixed bottom-0 left-0 right-0 bg-background border-t border-border flex justify-around p-2 z-50 md:hidden;
+  }
+
+  /* Responsive padding for content areas */
+  .content-container {
+    @apply p-3 sm:p-4 md:p-6;
+  }
+
+  /* Safe area insets for modern mobile browsers */
+  .safe-area-bottom {
+    @apply pb-[env(safe-area-inset-bottom)];
+  }
+
+  .safe-area-top {
+    @apply pt-[env(safe-area-inset-top)];
+  }
+
+  /* Improved scroll areas for mobile */
+  .scroll-area {
+    @apply overflow-y-auto overscroll-contain -webkit-overflow-scrolling-touch;
+  }
+
+  /* Media query for touch devices with larger touch targets */
+  @media (pointer: coarse) {
+    .touch-target {
+      @apply min-h-12 min-w-12;
+    }
+  }
 }
 
-.preview-container {
-  @apply bg-white dark:bg-gray-900 rounded-lg overflow-hidden;
-}
-
-.caption-overlay {
-  @apply absolute bottom-0 left-0 right-0 bg-black bg-opacity-70 backdrop-blur-sm p-4 text-white;
-}
-
-.caption-section {
-  @apply space-y-3;
-}
-
-.hashtag {
-  @apply bg-gray-100 dark:bg-gray-800 px-2 py-0.5 rounded text-xs text-blue-600 dark:text-blue-400;
-}
-
-.hashtag-overlay {
-  @apply text-blue-300 text-xs;
-}
-
-#sharable-content {
-  @apply transition-all duration-300;
+/* Add support for reduced motion preferences */
+@media (prefers-reduced-motion: reduce) {
+  * {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
 }

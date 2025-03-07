@@ -59,7 +59,7 @@ export const generateCaptions = async (
       - caption: The main caption text in a ${tone} tone (NO hashtags here)
       - cta: Call-to-action for "${goal}"
       - hashtags: Array of 5 relevant hashtags for "${niche}" (without # symbol)
-
+      ${goal === "Share Knowledge" ? "Start captions with phrases like 'Did you know?', 'Insight:', or 'Fact:'." : ""}
       Output Format:
       {
         "captions": [
