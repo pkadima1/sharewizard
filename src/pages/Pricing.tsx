@@ -4,7 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { createSubscriptionCheckout, createFlexCheckout } from '@/lib/stripe';
 import { Button } from '@/components/ui/button';
-import { Check, Info } from 'lucide-react';
+import { Check, Info, ChevronRight } from 'lucide-react';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
 import { useToast } from '@/hooks/use-toast';
 import { getStripePriceId } from '@/lib/subscriptionUtils';
@@ -52,18 +52,12 @@ const Pricing: React.FC = () => {
       return;
     }
     
-    toast({
-      title: 'Trial Activation',
-      description: 'Your free trial has been activated! You now have 5 requests to use within the next 5 days.',
-    });
-    
     // In a real implementation, we would call an API to activate the trial
-    // For now, we'll just redirect to the dashboard
     navigate('/dashboard');
   };
 
   return (
-    <div className="container mx-auto px-4 py-12">
+    <div className="container mx-auto px-4 py-20 fade-in">
       <div className="text-center mb-12">
         <h1 className="text-3xl md:text-4xl font-bold mb-3">Simple, Transparent Pricing</h1>
         <p className="text-lg text-gray-600 dark:text-gray-300 mb-8">Choose the plan that's right for you</p>
@@ -71,9 +65,9 @@ const Pricing: React.FC = () => {
         {/* Billing cycle switch with yearly highlighted as default */}
         <div className="inline-flex items-center bg-gray-100 dark:bg-gray-800 rounded-full p-1 mb-8">
           <button
-            className={`py-2 px-4 rounded-full ${
+            className={`py-2 px-4 rounded-full transition-colors duration-200 ${
               billingCycle === 'monthly' 
-                ? 'bg-primary text-white' 
+                ? 'bg-blue-600 text-white' 
                 : 'text-gray-700 dark:text-gray-300'
             }`}
             onClick={() => setBillingCycle('monthly')}
@@ -81,9 +75,9 @@ const Pricing: React.FC = () => {
             Monthly
           </button>
           <button
-            className={`py-2 px-4 rounded-full ${
+            className={`py-2 px-4 rounded-full transition-colors duration-200 ${
               billingCycle === 'yearly' 
-                ? 'bg-primary text-white' 
+                ? 'bg-blue-600 text-white' 
                 : 'text-gray-700 dark:text-gray-300'
             }`}
             onClick={() => setBillingCycle('yearly')}
@@ -164,7 +158,7 @@ const Pricing: React.FC = () => {
               Start Free Trial
             </Button>
             <p className="text-xs text-center text-gray-500 dark:text-gray-400 mt-3">
-              Start your 5-day trial with 5 free requests. Cancel anytime during the trial to avoid charges.
+              Start your 5-day trial with 5 free requests. Payment details required. Cancel anytime during the trial to avoid charges.
             </p>
           </div>
         </div>
@@ -172,7 +166,7 @@ const Pricing: React.FC = () => {
         {/* Premium Plan */}
         <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg overflow-hidden border border-gray-200 dark:border-gray-700 relative flex flex-col">
           <div className="absolute top-0 right-0 left-0">
-            <div className="bg-purple-600 text-white text-xs font-medium py-1 text-center rounded-t-lg">
+            <div className="bg-blue-600 text-white text-xs font-medium py-1 text-center rounded-t-lg">
               Most Popular
             </div>
           </div>
@@ -229,7 +223,7 @@ const Pricing: React.FC = () => {
           </div>
           <div className="p-6 bg-gray-50 dark:bg-gray-700">
             <Button 
-              className="w-full bg-purple-600 hover:bg-purple-700" 
+              className="w-full bg-blue-600 hover:bg-blue-700" 
               onClick={() => handlePurchase(
                 'premium', 
                 getStripePriceId('premium', billingCycle)
@@ -238,6 +232,9 @@ const Pricing: React.FC = () => {
             >
               {isLoading['premium'] ? 'Processing...' : 'Choose Premium'}
             </Button>
+            <p className="text-xs text-center text-gray-500 dark:text-gray-400 mt-3">
+              Includes 5-day free trial. Payment details required, cancel anytime.
+            </p>
           </div>
         </div>
         
@@ -284,6 +281,9 @@ const Pricing: React.FC = () => {
             >
               {isLoading['flexy'] ? 'Processing...' : 'Add Flex Pack'}
             </Button>
+            <p className="text-xs text-center text-gray-500 dark:text-gray-400 mt-3">
+              One-time purchase, no subscription required.
+            </p>
           </div>
         </div>
       </div>
@@ -296,7 +296,7 @@ const Pricing: React.FC = () => {
           <AccordionItem value="item-1">
             <AccordionTrigger className="text-left">What's included in the free trial?</AccordionTrigger>
             <AccordionContent>
-              All plans come with a 5-day free trial that includes 5 free requests. You can test all features available in your chosen plan during this period.
+              All plans come with a 5-day free trial that includes 5 free requests. You can test all features available in your chosen plan during this period. Credit card details are required to start a trial.
             </AccordionContent>
           </AccordionItem>
           
@@ -337,10 +337,11 @@ const Pricing: React.FC = () => {
           Join thousands of content creators and businesses who use EngagePerfect AI to create engaging content that resonates with their audience.
         </p>
         <Button 
-          className="bg-primary hover:bg-primary/90 text-white px-8 py-2"
+          className="bg-blue-600 hover:bg-blue-700 text-white px-8 py-2"
           onClick={freeTrial}
         >
           Start Your Free Trial Today
+          <ChevronRight className="ml-2 h-4 w-4" />
         </Button>
       </div>
     </div>

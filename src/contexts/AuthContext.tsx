@@ -1,3 +1,4 @@
+
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { 
   User, 
@@ -26,7 +27,12 @@ import {
 import { auth, db } from '@/lib/firebase';
 import { useToast } from '@/hooks/use-toast';
 import { DEFAULT_REQUEST_LIMIT } from '@/lib/constants';
-import { checkUserPlan, activateTrial } from '@/lib/subscriptionUtils';
+import { 
+  checkUserPlan, 
+  markUserForTrial, 
+  createSubscriptionCheckout, 
+  getStripePriceId 
+} from '@/lib/subscriptionUtils';
 
 interface AuthContextType {
   currentUser: User | null;
@@ -183,6 +189,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
+  // Modified to handle the trial activation properly
   const activateFreeTrial = async (selectedPlan: 'basic' | 'premium'): Promise<boolean> => {
     if (!currentUser) {
       toast({
@@ -194,26 +201,30 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
     
     try {
-      const success = await activateTrial(currentUser.uid, selectedPlan);
+      // Only mark the user for trial
+      const success = await markUserForTrial(currentUser.uid, selectedPlan);
       
       if (success) {
-        toast({
-          title: "Trial Setup",
-          description: "Your trial is being set up. You'll need to enter payment details to continue.",
-        });
+        // Redirect to subscription checkout to collect payment details
+        const priceId = getStripePriceId(selectedPlan, 'yearly');
         
-        // Refresh user profile to show updated limits
-        const userRef = doc(db, 'users', currentUser.uid);
-        const userDoc = await getDoc(userRef);
-        if (userDoc.exists()) {
-          setUserProfile({ id: userDoc.id, ...userDoc.data() });
+        if (!priceId) {
+          toast({
+            title: "Error",
+            description: "Invalid plan selection",
+            variant: "destructive",
+          });
+          return false;
         }
+        
+        const checkoutUrl = await createSubscriptionCheckout(currentUser.uid, priceId);
+        window.location.href = checkoutUrl;
         
         return true;
       } else {
         toast({
           title: "Error",
-          description: "Failed to activate trial. You might not be eligible.",
+          description: "Failed to set up trial. You might not be eligible.",
           variant: "destructive",
         });
         return false;
@@ -314,7 +325,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         where('status', 'in', ['trialing', 'active'])
       );
 
-      unsubscribeFromSubscription = onSnapshot(activeSubscriptionsQuery, (snapshot) => {
+      unsubscribeFromSubscription = onSnapshot(activeSubscriptionsQuery, async (snapshot) => {
         const subscriptionData = snapshot.docs[0]?.data();
         
         if (subscriptionData) {
@@ -322,27 +333,58 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           setSubscription(subscriptionData);
 
           const userRef = doc(db, 'users', currentUser.uid);
+          const userDoc = await getDoc(userRef);
           
-          const planType = subscriptionData.status === 'trialing' ? 'trial' : 
-                          (subscriptionData.role === 'premium' ? 'premium' : 
-                          (subscriptionData.role === 'basic' ? 'basic' : 'free'));
-          
-          const requestsLimit = subscriptionData.status === 'trialing' ? DEFAULT_REQUEST_LIMIT.trial :
-                              (subscriptionData.role === 'premium' ? DEFAULT_REQUEST_LIMIT.premium : 
-                              (subscriptionData.role === 'basic' ? DEFAULT_REQUEST_LIMIT.basic : 
-                              DEFAULT_REQUEST_LIMIT.free));
-          
-          const resetDate = new Date(subscriptionData.current_period_end.seconds * 1000);
-          
-          updateDoc(userRef, {
-            plan_type: planType,
-            requests_limit: requestsLimit,
-            reset_date: resetDate,
-            trial_end_date: subscriptionData.status === 'trialing' ? 
-                           new Date(subscriptionData.trial_end.seconds * 1000) : null
-          }).catch(error => {
-            console.error("Error updating user profile with subscription details:", error);
-          });
+          if (userDoc.exists()) {
+            const userData = userDoc.data();
+            
+            // Check if this is a new subscription and user has a pending trial
+            if (userData.trial_pending) {
+              // Activate the trial now that payment details are confirmed
+              const trialEndDate = new Date();
+              trialEndDate.setDate(trialEndDate.getDate() + 5);
+              
+              await updateDoc(userRef, {
+                plan_type: 'trial',
+                requests_limit: DEFAULT_REQUEST_LIMIT.trial,
+                trial_end_date: trialEndDate,
+                requests_used: 0,
+                has_used_trial: true,
+                trial_pending: false
+              });
+              
+              toast({
+                title: "Trial Activated",
+                description: "Your 5-day free trial has been activated.",
+              });
+            } else {
+              // Regular subscription update
+              const planType = subscriptionData.status === 'trialing' ? 'trial' : 
+                            (subscriptionData.role === 'premium' ? 'premium' : 
+                            (subscriptionData.role === 'basic' ? 'basic' : 'free'));
+              
+              const requestsLimit = subscriptionData.status === 'trialing' ? DEFAULT_REQUEST_LIMIT.trial :
+                                (subscriptionData.role === 'premium' ? DEFAULT_REQUEST_LIMIT.premium : 
+                                (subscriptionData.role === 'basic' ? DEFAULT_REQUEST_LIMIT.basic : 
+                                DEFAULT_REQUEST_LIMIT.free));
+              
+              const resetDate = new Date(subscriptionData.current_period_end.seconds * 1000);
+              
+              await updateDoc(userRef, {
+                plan_type: planType,
+                requests_limit: requestsLimit,
+                reset_date: resetDate,
+                trial_end_date: subscriptionData.status === 'trialing' ? 
+                              new Date(subscriptionData.trial_end.seconds * 1000) : null
+              });
+            }
+            
+            // Refresh user profile
+            const updatedUserDoc = await getDoc(userRef);
+            if (updatedUserDoc.exists()) {
+              setUserProfile({ id: updatedUserDoc.id, ...updatedUserDoc.data() });
+            }
+          }
         } else {
           console.log("No active subscription found");
           setSubscription(null);

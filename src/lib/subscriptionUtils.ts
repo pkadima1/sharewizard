@@ -1,3 +1,4 @@
+
 import { doc, getDoc, updateDoc, increment } from 'firebase/firestore';
 import { db } from './firebase';
 import { DEFAULT_REQUEST_LIMIT } from './constants';
@@ -70,7 +71,7 @@ export const checkUserPlan = async (userId: string): Promise<{
       if (planType === 'free') {
         return {
           status: 'UPGRADE',
-          message: 'You have used all your free requests. Start a trial or upgrade to continue.',
+          message: 'You have used all your free requests. Choose a plan and start a trial to continue.',
           usagePercentage
         };
       } else if (planType === 'trial') {
@@ -162,7 +163,7 @@ export const getDaysRemainingInPlan = (endDate: any): number => {
 export const getSuggestedUpgrade = (currentPlan: string): string => {
   switch (currentPlan) {
     case 'free':
-      return 'Start your 5-day free trial with a selected plan to get 5 more requests.';
+      return 'Choose a plan and start your 5-day free trial with your preferred plan.';
     case 'trial':
       return 'Your trial will end soon. Upgrade to Basic or Premium to continue.';
     case 'basic':
@@ -208,7 +209,9 @@ export const addFlexRequests = async (userId: string, additionalRequests: number
   }
 };
 
-export const activateTrial = async (userId: string, planSelected: 'basic' | 'premium' = 'basic'): Promise<boolean> => {
+// The trial setup is now only marking the user for trial
+// The actual activation happens after the subscription is confirmed
+export const markUserForTrial = async (userId: string, planSelected: 'basic' | 'premium' = 'basic'): Promise<boolean> => {
   try {
     const userRef = doc(db, 'users', userId);
     const userDoc = await getDoc(userRef);
@@ -221,30 +224,60 @@ export const activateTrial = async (userId: string, planSelected: 'basic' | 'pre
     const userData = userDoc.data();
     
     if (userData.plan_type !== 'free') {
-      console.error("User is not on free plan, cannot activate trial");
+      console.error("User is not on free plan, cannot mark for trial");
+      return false;
+    }
+    
+    console.log("Marking user for trial:", userId);
+    console.log("Selected plan for trial:", planSelected);
+    
+    await updateDoc(userRef, {
+      selected_plan: planSelected,
+      trial_pending: true
+    });
+    
+    console.log("User marked for trial, redirecting to Stripe");
+    return true;
+  } catch (error: any) {
+    console.error("Error marking user for trial:", error);
+    return false;
+  }
+};
+
+// This function is called after subscription confirmation
+export const activateTrialAfterPayment = async (userId: string): Promise<boolean> => {
+  try {
+    const userRef = doc(db, 'users', userId);
+    const userDoc = await getDoc(userRef);
+    
+    if (!userDoc.exists()) {
+      console.error("User document not found");
+      return false;
+    }
+    
+    const userData = userDoc.data();
+    
+    if (!userData.trial_pending) {
+      console.error("No pending trial for this user");
       return false;
     }
     
     const trialEndDate = new Date();
     trialEndDate.setDate(trialEndDate.getDate() + 5);
     
-    console.log("Marking user for trial:", userId);
-    console.log("Trial will end on:", trialEndDate);
-    console.log("Selected plan for trial:", planSelected);
-    
     await updateDoc(userRef, {
       plan_type: 'trial',
       requests_limit: DEFAULT_REQUEST_LIMIT.trial,
       trial_end_date: trialEndDate,
-      selected_plan: planSelected,
       requests_used: 0,
-      has_used_trial: true
+      has_used_trial: true,
+      trial_pending: false
     });
     
-    console.log("Trial marked successfully, should redirect to Stripe");
+    console.log("Trial activated successfully after payment confirmation");
     return true;
   } catch (error: any) {
-    console.error("Error activating trial:", error);
+    console.error("Error activating trial after payment:", error);
     return false;
   }
 };
