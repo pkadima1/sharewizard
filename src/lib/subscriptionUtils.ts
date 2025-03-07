@@ -217,28 +217,36 @@ export const activateTrial = async (userId: string): Promise<boolean> => {
     const userDoc = await getDoc(userRef);
     
     if (!userDoc.exists()) {
+      console.error("User document not found");
       return false;
     }
     
     const userData = userDoc.data();
     
-    // Only allow activation if user is on free plan
+    // Only allow activation if user is on free plan and has not used trial before
     if (userData.plan_type !== 'free') {
+      console.error("User is not on free plan, cannot activate trial");
       return false;
     }
     
+    // Calculate trial end date (5 days from now)
     const trialEndDate = new Date();
     trialEndDate.setDate(trialEndDate.getDate() + 5); // 5-day trial
+    
+    console.log("Activating trial for user:", userId);
+    console.log("Trial will end on:", trialEndDate);
     
     await updateDoc(userRef, {
       plan_type: 'trial',
       requests_limit: DEFAULT_REQUEST_LIMIT.trial,
       trial_end_date: trialEndDate,
-      requests_used: 0 // Reset usage counter for trial
+      requests_used: 0, // Reset usage counter for trial
+      has_used_trial: true // Mark that they've used their trial
     });
     
+    console.log("Trial activated successfully");
     return true;
-  } catch (error) {
+  } catch (error: any) {
     console.error("Error activating trial:", error);
     return false;
   }

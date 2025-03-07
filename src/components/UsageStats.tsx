@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { UserStats, SubscriptionTier } from '@/types';
 import { PLAN_LIMITS, DEFAULT_REQUEST_LIMIT } from '@/lib/constants';
@@ -38,10 +37,11 @@ interface UsageStatsProps {
 }
 
 const UsageStats: React.FC<UsageStatsProps> = ({ stats, subscriptionTier }) => {
-  const { userProfile, subscription, currentUser } = useAuth();
+  const { userProfile, subscription, currentUser, activateFreeTrial } = useAuth();
   const { toast } = useToast();
   const [isUpgradeModalOpen, setIsUpgradeModalOpen] = useState(false);
   const [selectedQuantity, setSelectedQuantity] = useState(1);
+  const [isActivatingTrial, setIsActivatingTrial] = useState(false);
   
   // Calculate usage percentages
   const aiUsagePercentage = Math.min(
@@ -68,6 +68,40 @@ const UsageStats: React.FC<UsageStatsProps> = ({ stats, subscriptionTier }) => {
   // Suggested upgrade message
   const upgradeMessage = getSuggestedUpgrade(planType);
 
+  // Handle starting free trial
+  const handleStartTrial = async () => {
+    if (!currentUser) {
+      toast({
+        title: "Error",
+        description: "You must be logged in to start a trial",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    try {
+      setIsActivatingTrial(true);
+      const success = await activateFreeTrial();
+      
+      if (!success) {
+        toast({
+          title: "Trial Activation Failed",
+          description: "Unable to activate your trial. Please try again later.",
+          variant: "destructive",
+        });
+      }
+    } catch (error: any) {
+      console.error("Error starting trial:", error);
+      toast({
+        title: "Error",
+        description: `Failed to start trial: ${error.message}`,
+        variant: "destructive",
+      });
+    } finally {
+      setIsActivatingTrial(false);
+    }
+  };
+
   // Handle plan upgrade
   const handleUpgrade = async () => {
     if (!currentUser) {
@@ -80,23 +114,16 @@ const UsageStats: React.FC<UsageStatsProps> = ({ stats, subscriptionTier }) => {
     }
 
     try {
-      let priceId = "";
-
-      // Determine which price ID to use based on current plan
-      switch (planType) {
-        case 'free':
-        case 'trial':
-          // Start with basic plan
-          priceId = "price_basic_monthly"; // Replace with your actual price ID
-          break;
-        case 'basic':
-          // Upgrade to premium
-          priceId = "price_premium_monthly"; // Replace with your actual price ID
-          break;
-        default:
-          // Default to basic plan
-          priceId = "price_basic_monthly";
-          break;
+      // Get the correct Stripe price ID using the utility function
+      const priceId = getStripePriceId(planType === 'free' || planType === 'trial' ? 'basic' : 'premium', 'monthly');
+      
+      if (!priceId) {
+        toast({
+          title: "Error",
+          description: "Invalid plan selection",
+          variant: "destructive",
+        });
+        return;
       }
 
       const url = await createSubscriptionCheckout(currentUser.uid, priceId);
@@ -108,6 +135,26 @@ const UsageStats: React.FC<UsageStatsProps> = ({ stats, subscriptionTier }) => {
         description: `Failed to upgrade plan: ${error.message}`,
         variant: "destructive",
       });
+    }
+  };
+
+  // Helper function to get the correct Stripe price ID
+  const getStripePriceId = (planType: string, cycle: 'monthly' | 'yearly'): string => {
+    // Return actual Stripe price IDs from your Stripe dashboard
+    // These should match the IDs in your Stripe account
+    switch (planType) {
+      case 'basic':
+        return cycle === 'monthly' 
+          ? 'price_1QzLExGCd9fidigrcqSSEhSM'  // Use your actual Stripe price ID
+          : 'price_1QzLIQGCd9fidigre35Wc90Y'; // Use your actual Stripe price ID
+      case 'premium':
+        return cycle === 'monthly'
+          ? 'price_1QzL3bGCd9fidigrpAXemWMN'  // Use your actual Stripe price ID
+          : 'price_1QzL6ZGCd9fidigrckYnMw6w'; // Use your actual Stripe price ID
+      case 'flexy':
+        return 'price_1QzLOMGCd9fidigrt9Bk0C67'; // Use your actual Stripe price ID
+      default:
+        return '';
     }
   };
 
@@ -239,9 +286,10 @@ const UsageStats: React.FC<UsageStatsProps> = ({ stats, subscriptionTier }) => {
                   variant="default" 
                   size="sm" 
                   className="w-full sm:w-auto"
-                  onClick={handleUpgrade}
+                  onClick={handleStartTrial}
+                  disabled={isActivatingTrial}
                 >
-                  Start 5-Day Free Trial
+                  {isActivatingTrial ? "Activating..." : "Start 5-Day Free Trial"}
                 </Button>
               )}
               

@@ -1,3 +1,4 @@
+
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { 
   User, 
@@ -26,7 +27,7 @@ import {
 import { auth, db } from '@/lib/firebase';
 import { useToast } from '@/hooks/use-toast';
 import { DEFAULT_REQUEST_LIMIT } from '@/lib/constants';
-import { checkUserPlan } from '@/lib/subscriptionUtils';
+import { checkUserPlan, activateTrial } from '@/lib/subscriptionUtils';
 
 interface AuthContextType {
   currentUser: User | null;
@@ -43,6 +44,7 @@ interface AuthContextType {
     message: string;
     usagePercentage: number;
   }>;
+  activateFreeTrial: () => Promise<boolean>;
   subscription: any | null;
 }
 
@@ -176,6 +178,52 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       toast({
         title: "Error",
         description: `Failed to track request usage: ${error.message}`,
+        variant: "destructive",
+      });
+      return false;
+    }
+  };
+
+  const activateFreeTrial = async (): Promise<boolean> => {
+    if (!currentUser) {
+      toast({
+        title: "Error",
+        description: "You must be logged in to activate a trial",
+        variant: "destructive",
+      });
+      return false;
+    }
+    
+    try {
+      const success = await activateTrial(currentUser.uid);
+      
+      if (success) {
+        toast({
+          title: "Trial Activated",
+          description: "Your 5-day free trial has been activated. You now have 5 additional requests.",
+        });
+        
+        // Refresh user profile to show updated limits
+        const userRef = doc(db, 'users', currentUser.uid);
+        const userDoc = await getDoc(userRef);
+        if (userDoc.exists()) {
+          setUserProfile({ id: userDoc.id, ...userDoc.data() });
+        }
+        
+        return true;
+      } else {
+        toast({
+          title: "Error",
+          description: "Failed to activate trial. You might not be eligible.",
+          variant: "destructive",
+        });
+        return false;
+      }
+    } catch (error: any) {
+      console.error("Error activating trial:", error);
+      toast({
+        title: "Error",
+        description: `Failed to activate trial: ${error.message}`,
         variant: "destructive",
       });
       return false;
@@ -353,6 +401,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     resetPassword,
     incrementRequestUsage,
     checkRequestAvailability,
+    activateFreeTrial,
     subscription
   };
 

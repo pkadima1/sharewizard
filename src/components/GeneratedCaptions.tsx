@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
@@ -34,7 +35,7 @@ const GeneratedCaptions: React.FC<GeneratedCaptionsProps> = ({
   const [captions, setCaptions] = useState<GeneratedCaption[]>([]);
   const [selectedCaption, setSelectedCaption] = useState<number>(0);
   const [error, setError] = useState<string | null>(null);
-  const { incrementRequestUsage } = useAuth();
+  const { incrementRequestUsage, checkRequestAvailability } = useAuth();
 
   useEffect(() => {
     const fetchCaptions = async () => {
@@ -43,14 +44,16 @@ const GeneratedCaptions: React.FC<GeneratedCaptionsProps> = ({
       try {
         setError(null);
         
-        const canProceed = await incrementRequestUsage();
+        // First check if the user can make the request without incrementing
+        const availability = await checkRequestAvailability();
         
-        if (!canProceed) {
+        if (!availability.canMakeRequest) {
           setIsGenerating(false);
-          setError("You've reached your request limit. Please upgrade your plan to continue.");
+          setError(availability.message);
           return;
         }
         
+        // Generate captions
         const captionResponse = await generateCaptions(
           selectedPlatform,
           selectedTone,
@@ -59,7 +62,11 @@ const GeneratedCaptions: React.FC<GeneratedCaptionsProps> = ({
           postIdea
         );
 
+        // Only increment the usage counter if generation was successful
         if (captionResponse && captionResponse.captions) {
+          // Increment the counter only after successful generation
+          await incrementRequestUsage();
+          
           setCaptions(captionResponse.captions);
           setSelectedCaption(0);
           console.log("Captions generated successfully:", captionResponse.captions);
