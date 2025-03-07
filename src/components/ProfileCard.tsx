@@ -12,7 +12,7 @@ const ProfileCard: React.FC<ProfileCardProps> = ({
 }) => {
   const daysRemaining = user.planExpiryDate ? getDaysRemaining(user.planExpiryDate) : null;
   return <div className="profile-card animate-scale-in">
-      <div className="relative h-32 profile-header-gradient py-0 my-0 bg-[#0c36ff]/[0.28]">
+      <div className="relative h-32 profile-header-gradient py-0 my-0 bg-[#0011ff]">
         <button onClick={onEditProfile} className="absolute top-4 right-4 bg-white/20 backdrop-blur-md text-white px-4 py-2 rounded-lg text-sm font-medium transition-all duration-300 hover:bg-white/30 focus:ring-2 focus:ring-white/50 focus:outline-none">
           Edit Profile
         </button>
