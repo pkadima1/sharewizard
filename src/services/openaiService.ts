@@ -47,13 +47,42 @@ export const generateCaptions = async (
     const userPrompt = `
       Create 3 engaging ${tone} captions for ${platform} about '${contentToGenerate}'.
 
+      The caption must:
+      1. Be concise and tailored to ${platform}'s audience and character limits (e.g., Instagram: 2200 characters, Twitter: 200 characters).
+      2. Use hashtags relevant to the ${niche} industry.
+      3. Include an optional call-to-action to drive engagement (e.g., "Comment below," "Tag a friend," "Share your thoughts" etc).
+      4. If the goal is to share knowledge, start with words like 'did you know? "Insight", "Fact", etc…
+      5. Reflect current trends or platform-specific language where applicable. And post format and size.
+
       Format as JSON with these fields for each caption:
-      - title: A brief, catchy title
-      - caption: The main caption text (NO hashtags here)
+      - title: A brief, catchy title highlighting main caption theme
+      - caption: The main caption text in a ${tone} tone (NO hashtags here)
       - cta: Call-to-action for "${goal}"
       - hashtags: Array of 5 relevant hashtags for "${niche}" (without # symbol)
 
-      ${goal === "Share Knowledge" ? "Start captions with phrases like 'Did you know?', 'Insight:', or 'Fact:'." : ""}
+      Output Format:
+      {
+        "captions": [
+          {
+            "title": "Catchy title highlighting main caption theme",
+            "caption": "Write a 1-2 sentence caption in a ${tone} tone without hashtags.",
+            "cta": "Provide a specific CTA to encourage engagement",
+            "hashtags": ["hashtag1", "hashtag2", "hashtag3", "hashtag4", "hashtag5"]
+          },
+          {
+            "title": "Another engaging title for a unique post idea",
+            "caption": "Write an attention-grabbing caption without hashtags.",
+            "cta": "Include a CTA to drive user interaction",
+            "hashtags": ["tag1", "tag2", "tag3", "tag4", "tag5"]
+          },
+          {
+            "title": "Third compelling caption title",
+            "caption": "Provide a brief but engaging caption tailored to platform and tone.",
+            "cta": "Suggest a CTA to encourage likes, shares, or comments",
+            "hashtags": ["tag1", "tag2", "tag3", "tag4", "tag5"]
+          }
+        ]
+      }
     `;
 
     console.log("Calling OpenAI API with model: gpt-4o-mini");
