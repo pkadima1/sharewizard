@@ -1,25 +1,21 @@
-
 import React from 'react';
 import { Post } from '@/types';
 import { formatDate } from '@/lib/constants';
 import { Twitter, Linkedin, Facebook, Share, ExternalLink } from 'lucide-react';
-
 interface RecentPostsProps {
   posts: Post[];
 }
-
-const RecentPosts: React.FC<RecentPostsProps> = ({ posts }) => {
+const RecentPosts: React.FC<RecentPostsProps> = ({
+  posts
+}) => {
   if (posts.length === 0) {
-    return (
-      <div className="space-y-6 animate-fade-in">
+    return <div className="space-y-6 animate-fade-in">
         <h2 className="text-2xl font-semibold">Recent Posts</h2>
         <div className="bg-white rounded-2xl shadow-subtle p-8 text-center">
           <p className="text-gray-500">No posts shared yet</p>
         </div>
-      </div>
-    );
+      </div>;
   }
-  
   const getPlatformIcon = (platform: string) => {
     switch (platform.toLowerCase()) {
       case 'twitter':
@@ -32,14 +28,16 @@ const RecentPosts: React.FC<RecentPostsProps> = ({ posts }) => {
         return <Share className="w-4 h-4 text-gray-600" />;
     }
   };
-  
   const calculateTotalShares = (post: Post) => {
-    const { twitter, linkedin, facebook, other } = post.shareCounts;
+    const {
+      twitter,
+      linkedin,
+      facebook,
+      other
+    } = post.shareCounts;
     return twitter + linkedin + facebook + other;
   };
-  
-  return (
-    <div className="space-y-6 animate-fade-in">
+  return <div className="space-y-6 animate-fade-in">
       <div className="flex items-center justify-between">
         <h2 className="text-2xl font-semibold">Recent Posts</h2>
         <button className="text-sm text-primary hover:underline flex items-center">
@@ -48,11 +46,7 @@ const RecentPosts: React.FC<RecentPostsProps> = ({ posts }) => {
       </div>
       
       <div className="space-y-4">
-        {posts.map((post) => (
-          <div 
-            key={post.id} 
-            className="stats-card overflow-hidden"
-          >
+        {posts.map(post => <div key={post.id} className="stats-card overflow-hidden">
             <div className="flex items-center gap-2">
               {getPlatformIcon(post.platform)}
               <span className="text-sm font-medium">{post.platform}</span>
@@ -60,19 +54,12 @@ const RecentPosts: React.FC<RecentPostsProps> = ({ posts }) => {
             </div>
             
             <div className="mt-3">
-              <p className="text-gray-800 line-clamp-3">{post.content}</p>
+              <p className="line-clamp-3 text-zinc-50">{post.content}</p>
             </div>
             
-            {post.imageUrl && (
-              <div className="mt-3 rounded-lg overflow-hidden h-40 bg-gray-100">
-                <img 
-                  src={post.imageUrl} 
-                  alt="Post image" 
-                  className="w-full h-full object-cover"
-                  loading="lazy"
-                />
-              </div>
-            )}
+            {post.imageUrl && <div className="mt-3 rounded-lg overflow-hidden h-40 bg-gray-100">
+                <img src={post.imageUrl} alt="Post image" className="w-full h-full object-cover" loading="lazy" />
+              </div>}
             
             <div className="mt-4 pt-3 border-t flex justify-between items-center">
               <div className="flex items-center gap-4">
@@ -101,11 +88,8 @@ const RecentPosts: React.FC<RecentPostsProps> = ({ posts }) => {
                 {calculateTotalShares(post)} total shares
               </div>
             </div>
-          </div>
-        ))}
+          </div>)}
       </div>
-    </div>
-  );
+    </div>;
 };
-
 export default RecentPosts;
