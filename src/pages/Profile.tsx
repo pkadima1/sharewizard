@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { MOCK_USER_PROFILE } from '@/lib/constants';
 import { UserProfile } from '@/types';
@@ -8,12 +7,10 @@ import UsageStats from '@/components/UsageStats';
 import RecentPosts from '@/components/RecentPosts';
 import EditProfileModal from '@/components/EditProfileModal';
 import { toast } from "@/hooks/use-toast";
-
 const Profile: React.FC = () => {
   const [user, setUser] = useState<UserProfile | null>(null);
   const [loading, setLoading] = useState(true);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
-  
   useEffect(() => {
     // Simulate fetching user data from Firebase
     const fetchUserData = async () => {
@@ -27,39 +24,35 @@ const Profile: React.FC = () => {
       } catch (error) {
         console.error('Error fetching user data:', error);
         setLoading(false);
-        
+
         // Show error toast
         toast({
           title: "Error",
           description: "Failed to load profile data. Please try again.",
-          variant: "destructive",
+          variant: "destructive"
         });
       }
     };
-    
     fetchUserData();
   }, []);
-  
   const handleSaveProfile = (updates: Partial<UserProfile>) => {
     if (!user) return;
-    
+
     // In a real app, this would update Firebase
     // For now, just update the local state
     setUser({
       ...user,
       ...updates
     });
-    
+
     // Show success toast
     toast({
       title: "Profile Updated",
-      description: "Your profile has been updated successfully!",
+      description: "Your profile has been updated successfully!"
     });
   };
-  
   if (loading) {
-    return (
-      <div className="min-h-screen bg-gray-50">
+    return <div className="min-h-screen bg-gray-50">
         <Navbar />
         <div className="flex items-center justify-center min-h-[80vh]">
           <div className="flex flex-col items-center">
@@ -67,13 +60,10 @@ const Profile: React.FC = () => {
             <p className="mt-4 text-gray-600">Loading profile...</p>
           </div>
         </div>
-      </div>
-    );
+      </div>;
   }
-  
   if (!user) {
-    return (
-      <div className="min-h-screen bg-gray-50">
+    return <div className="min-h-screen bg-gray-50">
         <Navbar />
         <div className="container mx-auto px-4 sm:px-6 py-8">
           <div className="bg-white rounded-2xl shadow-subtle p-8 text-center">
@@ -83,27 +73,18 @@ const Profile: React.FC = () => {
             </p>
           </div>
         </div>
-      </div>
-    );
+      </div>;
   }
-  
-  return (
-    <div className="min-h-screen bg-gray-50">
+  return <div className="min-h-screen py-0 px-[10px] mx-0 my-[100px] bg-slate-900 rounded-2xl">
       <Navbar />
       
       <main className="container mx-auto px-4 sm:px-6 py-8 max-w-6xl">
         <div className="grid grid-cols-1 gap-8">
           {/* Profile Card */}
-          <ProfileCard 
-            user={user} 
-            onEditProfile={() => setIsEditModalOpen(true)} 
-          />
+          <ProfileCard user={user} onEditProfile={() => setIsEditModalOpen(true)} />
           
           {/* Usage Statistics */}
-          <UsageStats 
-            stats={user.stats} 
-            subscriptionTier={user.subscriptionTier} 
-          />
+          <UsageStats stats={user.stats} subscriptionTier={user.subscriptionTier} />
           
           {/* Recent Posts */}
           <RecentPosts posts={user.recentPosts} />
@@ -111,14 +92,7 @@ const Profile: React.FC = () => {
       </main>
       
       {/* Edit Profile Modal */}
-      <EditProfileModal 
-        user={user}
-        isOpen={isEditModalOpen}
-        onClose={() => setIsEditModalOpen(false)}
-        onSave={handleSaveProfile}
-      />
-    </div>
-  );
+      <EditProfileModal user={user} isOpen={isEditModalOpen} onClose={() => setIsEditModalOpen(false)} onSave={handleSaveProfile} />
+    </div>;
 };
-
 export default Profile;
