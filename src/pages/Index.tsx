@@ -1,11 +1,8 @@
-
 import React from 'react';
 import { Link } from 'react-router-dom';
 import Navbar from '@/components/Navbar';
-
 const Index = () => {
-  return (
-    <div className="min-h-screen bg-gray-50">
+  return <div className="min-h-screen bg-gray-50 py-[100px]">
       <Navbar />
       
       <main className="container mx-auto px-4 sm:px-6 py-16 max-w-6xl">
@@ -23,17 +20,11 @@ const Index = () => {
           </p>
           
           <div className="flex flex-col sm:flex-row items-center justify-center gap-4 pt-4">
-            <Link 
-              to="/dashboard" 
-              className="px-8 py-3 bg-primary text-white rounded-lg shadow-md hover:bg-blue-600 transition-colors"
-            >
+            <Link to="/dashboard" className="px-8 py-3 bg-primary text-white rounded-lg shadow-md hover:bg-blue-600 transition-colors">
               Get Started
             </Link>
             
-            <Link 
-              to="/profile" 
-              className="px-8 py-3 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
-            >
+            <Link to="/profile" className="px-8 py-3 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors">
               View Profile
             </Link>
           </div>
@@ -49,8 +40,6 @@ const Index = () => {
           </p>
         </div>
       </main>
-    </div>
-  );
+    </div>;
 };
-
 export default Index;
