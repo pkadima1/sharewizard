@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
@@ -9,25 +8,35 @@ import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/
 import { useToast } from '@/hooks/use-toast';
 import { getStripePriceId } from '@/lib/subscriptionUtils';
 import { cn } from '@/lib/utils';
-
 const Pricing: React.FC = () => {
   // Set yearly as the default billing cycle
   const [billingCycle, setBillingCycle] = useState<'monthly' | 'yearly'>('yearly');
-  const { currentUser } = useAuth();
+  const {
+    currentUser
+  } = useAuth();
   const navigate = useNavigate();
-  const { toast } = useToast();
-  const [isLoading, setIsLoading] = useState<{[key: string]: boolean}>({});
-
+  const {
+    toast
+  } = useToast();
+  const [isLoading, setIsLoading] = useState<{
+    [key: string]: boolean;
+  }>({});
   const handlePurchase = async (plan: string, priceId: string) => {
     try {
-      setIsLoading((prev) => ({ ...prev, [plan]: true }));
-      
+      setIsLoading(prev => ({
+        ...prev,
+        [plan]: true
+      }));
       if (!currentUser) {
         // Redirect to signup if user is not logged in
-        navigate('/signup', { state: { from: 'pricing', plan } });
+        navigate('/signup', {
+          state: {
+            from: 'pricing',
+            plan
+          }
+        });
         return;
       }
-
       if (plan === 'flexy') {
         const checkoutUrl = await createFlexCheckout(currentUser.uid, priceId);
         window.location.href = checkoutUrl;
@@ -40,60 +49,47 @@ const Pricing: React.FC = () => {
       toast({
         title: 'Error',
         description: `Failed to create checkout: ${error.message}`,
-        variant: 'destructive',
+        variant: 'destructive'
       });
     } finally {
-      setIsLoading((prev) => ({ ...prev, [plan]: false }));
+      setIsLoading(prev => ({
+        ...prev,
+        [plan]: false
+      }));
     }
   };
-
   const freeTrial = () => {
     if (!currentUser) {
-      navigate('/signup', { state: { from: 'pricing', plan: 'trial' } });
+      navigate('/signup', {
+        state: {
+          from: 'pricing',
+          plan: 'trial'
+        }
+      });
       return;
     }
-    
+
     // In a real implementation, we would call an API to activate the trial
     navigate('/dashboard');
   };
-
-  return (
-    <div className="min-h-screen bg-background text-foreground">
-      <div className="py-12 px-4 animate-fade-in">
+  return <div className="min-h-screen bg-background text-foreground">
+      <div className="px-4 animate-fade-in py-[150px]">
         <div className="text-center mb-10">
           <h1 className="text-3xl md:text-4xl font-bold mb-3 text-foreground">Simple, Transparent Pricing</h1>
           <p className="text-lg text-muted-foreground mb-8 max-w-2xl mx-auto">Choose the plan that's right for you</p>
           
           {/* Billing cycle switch with yearly highlighted as default */}
           <div className="inline-flex items-center bg-gray-100 dark:bg-gray-800 rounded-full p-1 mb-6">
-            <button
-              className={cn(
-                "py-2 px-4 rounded-full transition-colors duration-200",
-                billingCycle === 'monthly' 
-                  ? 'bg-primary text-primary-foreground' 
-                  : 'text-foreground/80'
-              )}
-              onClick={() => setBillingCycle('monthly')}
-            >
+            <button className={cn("py-2 px-4 rounded-full transition-colors duration-200", billingCycle === 'monthly' ? 'bg-primary text-primary-foreground' : 'text-foreground/80')} onClick={() => setBillingCycle('monthly')}>
               Monthly
             </button>
-            <button
-              className={cn(
-                "py-2 px-4 rounded-full transition-colors duration-200",
-                billingCycle === 'yearly' 
-                  ? 'bg-primary text-primary-foreground' 
-                  : 'text-foreground/80'
-              )}
-              onClick={() => setBillingCycle('yearly')}
-            >
+            <button className={cn("py-2 px-4 rounded-full transition-colors duration-200", billingCycle === 'yearly' ? 'bg-primary text-primary-foreground' : 'text-foreground/80')} onClick={() => setBillingCycle('yearly')}>
               Yearly
             </button>
           </div>
-          {billingCycle === 'yearly' && (
-            <div className="text-sm text-green-500 dark:text-green-400 font-medium mb-4">
+          {billingCycle === 'yearly' && <div className="text-sm text-green-500 dark:text-green-400 font-medium mb-4">
               Save significantly with our yearly plans!
-            </div>
-          )}
+            </div>}
         </div>
 
         {/* Pricing Cards - Mobile responsive grid */}
@@ -112,11 +108,9 @@ const Pricing: React.FC = () => {
                 <span className="text-muted-foreground text-sm ml-1">
                   {billingCycle === 'monthly' ? '/month' : '/year'}
                 </span>
-                {billingCycle === 'yearly' && (
-                  <div className="text-sm text-green-500 dark:text-green-400 font-medium mt-1">
+                {billingCycle === 'yearly' && <div className="text-sm text-green-500 dark:text-green-400 font-medium mt-1">
                     Save £59.89/year (~50%)
-                  </div>
-                )}
+                  </div>}
               </div>
               <ul className="space-y-3 mb-6">
                 <li className="flex items-start">
@@ -144,14 +138,7 @@ const Pricing: React.FC = () => {
               </ul>
             </div>
             <div className="pt-5 border-t border-border/50 space-y-3">
-              <Button 
-                className="w-full bg-gray-900 hover:bg-gray-800 text-white dark:bg-gray-800 dark:hover:bg-gray-700"
-                onClick={() => handlePurchase(
-                  'basic', 
-                  getStripePriceId('basic', billingCycle)
-                )}
-                disabled={isLoading['basic']}
-              >
+              <Button className="w-full bg-gray-900 hover:bg-gray-800 text-white dark:bg-gray-800 dark:hover:bg-gray-700" onClick={() => handlePurchase('basic', getStripePriceId('basic', billingCycle))} disabled={isLoading['basic']}>
                 {isLoading['basic'] ? 'Processing...' : 'Choose Lite'}
               </Button>
               <p className="text-xs text-center text-muted-foreground mt-3">
@@ -179,11 +166,9 @@ const Pricing: React.FC = () => {
                 <span className="text-muted-foreground text-sm ml-1">
                   {billingCycle === 'monthly' ? '/month' : '/year'}
                 </span>
-                {billingCycle === 'yearly' && (
-                  <div className="text-sm text-green-500 dark:text-green-400 font-medium mt-1">
+                {billingCycle === 'yearly' && <div className="text-sm text-green-500 dark:text-green-400 font-medium mt-1">
                     Save £519.89/year (~43%)
-                  </div>
-                )}
+                  </div>}
               </div>
               <ul className="space-y-3 mb-6">
                 <li className="flex items-start">
@@ -219,14 +204,7 @@ const Pricing: React.FC = () => {
               </ul>
             </div>
             <div className="pt-5 border-t border-border/50">
-              <Button 
-                className="w-full bg-violet-600 hover:bg-violet-700"
-                onClick={() => handlePurchase(
-                  'premium', 
-                  getStripePriceId('premium', billingCycle)
-                )}
-                disabled={isLoading['premium']}
-              >
+              <Button className="w-full bg-violet-600 hover:bg-violet-700" onClick={() => handlePurchase('premium', getStripePriceId('premium', billingCycle))} disabled={isLoading['premium']}>
                 {isLoading['premium'] ? 'Processing...' : 'Choose Pro'}
               </Button>
               <p className="text-xs text-center text-muted-foreground mt-3">
@@ -270,11 +248,7 @@ const Pricing: React.FC = () => {
               </ul>
             </div>
             <div className="pt-5 border-t border-border/50">
-              <Button 
-                className="w-full bg-gray-900 hover:bg-gray-800 text-white dark:bg-gray-800 dark:hover:bg-gray-700"
-                onClick={() => handlePurchase('flexy', getStripePriceId('flexy', 'monthly'))}
-                disabled={isLoading['flexy']}
-              >
+              <Button className="w-full bg-gray-900 hover:bg-gray-800 text-white dark:bg-gray-800 dark:hover:bg-gray-700" onClick={() => handlePurchase('flexy', getStripePriceId('flexy', 'monthly'))} disabled={isLoading['flexy']}>
                 {isLoading['flexy'] ? 'Processing...' : 'Add Flex Pack'}
               </Button>
               <p className="text-xs text-center text-muted-foreground mt-3">
@@ -332,17 +306,12 @@ const Pricing: React.FC = () => {
           <p className="text-muted-foreground mb-6 max-w-2xl mx-auto">
             Join thousands of content creators and businesses who use EngagePerfect AI to create engaging content that resonates with their audience.
           </p>
-          <Button 
-            className="bg-primary hover:bg-primary/90 text-primary-foreground px-8 py-6 rounded-lg text-lg"
-            onClick={freeTrial}
-          >
+          <Button className="bg-primary hover:bg-primary/90 text-primary-foreground px-8 py-6 rounded-lg text-lg" onClick={freeTrial}>
             Start Your Free Trial Today
             <ChevronRight className="ml-2 h-5 w-5" />
           </Button>
         </div>
       </div>
-    </div>
-  );
+    </div>;
 };
-
 export default Pricing;
