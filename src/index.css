@@ -1,3 +1,4 @@
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -82,6 +83,33 @@
 
 /* Mobile-first approach with responsive utilities */
 @layer components {
+  /* Premium Glass Card Styles for Light and Dark Mode */
+  .glass-card {
+    @apply border rounded-lg transition-all relative;
+
+    /* Light mode glass effect */
+    @apply bg-white/90 backdrop-blur-md border-white/20 shadow-sm hover:shadow-md;
+    
+    /* Dark mode glass effect */
+    .dark & {
+      @apply bg-gray-900/80 backdrop-blur-xl border-white/10 shadow-[0_8px_30px_rgba(0,0,0,0.12)];
+      @apply hover:shadow-[0_10px_40px_rgba(0,0,0,0.2)] hover:bg-gray-900/90;
+      box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.15);
+    }
+  }
+
+  /* Premium card with subtle gradient in dark mode */
+  .premium-card {
+    @apply glass-card;
+    
+    /* Dark mode premium effect */
+    .dark & {
+      @apply bg-gradient-to-br from-gray-800/90 to-gray-900/95;
+      @apply border-indigo-500/20 shadow-[0_8px_30px_rgba(59,130,246,0.11)];
+      @apply hover:border-indigo-500/30 hover:shadow-[0_10px_40px_rgba(59,130,246,0.15)];
+    }
+  }
+
   /* Card component with mobile-first design */
   .caption-card {
     @apply border rounded-lg p-3 sm:p-4 transition-all cursor-pointer hover:shadow-md w-full relative;
@@ -100,6 +128,15 @@
     &.selected {
       @apply border-primary bg-primary/5;
     }
+
+    /* Dark mode enhancement */
+    .dark & {
+      @apply hover:border-blue-500/30 hover:bg-gray-800/50;
+      
+      &.selected {
+        @apply border-blue-500/50 bg-blue-900/20;
+      }
+    }
   }
 
   /* Improved visibility on mobile */
@@ -110,6 +147,12 @@
   /* Responsive container */
   .preview-container {
     @apply bg-white dark:bg-gray-900 rounded-lg overflow-hidden shadow-sm w-full;
+    
+    /* Dark mode glass effect for preview container */
+    .dark & {
+      @apply bg-gray-900/90 backdrop-blur-md border border-white/10;
+      box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.15);
+    }
   }
 
   /* Improved mobile caption overlay */
@@ -158,6 +201,36 @@
   /* Improved scroll areas for mobile */
   .scroll-area {
     @apply overflow-y-auto overscroll-contain -webkit-overflow-scrolling-touch;
+  }
+
+  /* Status badge with dark mode enhancements */
+  .status-badge {
+    @apply px-2.5 py-1 rounded-full text-xs font-medium;
+    
+    /* Dark mode enhancement for better contrast */
+    .dark & {
+      @apply shadow-[0_0_10px_rgba(59,130,246,0.3)];
+    }
+  }
+
+  /* Premium gradient background for profile headers */
+  .profile-header-gradient {
+    @apply bg-gradient-to-r from-blue-600 to-indigo-700;
+    
+    .dark & {
+      @apply from-blue-600/90 to-indigo-800/90 backdrop-blur-lg;
+      box-shadow: 0 10px 30px -10px rgba(59, 130, 246, 0.5);
+    }
+  }
+
+  /* Profile card with premium appearance */
+  .profile-card {
+    @apply bg-card text-card-foreground rounded-2xl overflow-hidden shadow-sm;
+    
+    .dark & {
+      @apply bg-gray-900/80 backdrop-blur-xl border border-white/10;
+      box-shadow: 0 10px 40px rgba(0, 0, 0, 0.25);
+    }
   }
 
   /* Media query for touch devices with larger touch targets */
