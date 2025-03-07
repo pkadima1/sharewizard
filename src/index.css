@@ -23,7 +23,7 @@
     --border: 214.3 31.8% 91.4%;
     --input: 214.3 31.8% 91.4%;
     --ring: 221.2 83.2% 53.3%;
-    --radius: 0.5rem;
+    --radius: 0.75rem;
     --sidebar-background: 223 100% 98%;
     --sidebar-foreground: 222.2 84% 4.9%;
     --sidebar-primary: 221.2 83.2% 53.3%;
@@ -80,65 +80,35 @@
   }
 }
 
-/* Mobile-first approach with responsive utilities */
 @layer components {
-  /* Basic glass card styles - no nesting */
-  .glass-card {
-    @apply border rounded-lg transition-all relative overflow-hidden;
-    @apply bg-white/90 backdrop-blur-md border-white/20 shadow-sm hover:shadow-md;
-  }
-  
-  /* Dark mode glass effect - separate class instead of nesting */
-  .dark .glass-card {
-    @apply bg-gray-900/80 backdrop-blur-xl border-white/10;
-    box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.15);
-    @apply hover:shadow-[0_10px_40px_rgba(59,130,246,0.15)];
+  /* Base card styles */
+  .base-card {
+    @apply border rounded-xl transition-all relative overflow-hidden;
+    @apply bg-card text-card-foreground shadow-subtle hover:shadow-elevated;
+    @apply border-border;
   }
 
-  /* Premium card styles */
-  .premium-card {
-    @apply border rounded-lg transition-all relative overflow-hidden;
-    @apply bg-white/90 backdrop-blur-md border-white/20 shadow-sm hover:shadow-md;
-  }
-  
-  /* Dark mode premium card styles */
-  .dark .premium-card {
-    @apply bg-gradient-to-br from-gray-800/90 to-gray-900/95;
-    @apply border-indigo-500/20 shadow-[0_8px_30px_rgba(59,130,246,0.11)];
-    @apply hover:border-indigo-500/30 hover:shadow-[0_10px_40px_rgba(59,130,246,0.15)];
-  }
-  
-  /* Pricing card styles */
+  /* Pricing card styles - used in pricing page */
   .pricing-card {
-    @apply border rounded-lg transition-all relative overflow-hidden;
-    @apply bg-white/90 backdrop-blur-md border-white/20 shadow-sm hover:shadow-md;
-    @apply p-5 sm:p-6 flex flex-col h-full;
+    @apply base-card p-6 flex flex-col h-full;
+    @apply bg-card text-card-foreground;
   }
   
-  /* Dark mode pricing card styles */
-  .dark .pricing-card {
-    @apply from-gray-800/95 to-gray-900/95 bg-gradient-to-br;
-    @apply border-white/10 backdrop-blur-xl;
-    @apply shadow-[0_15px_30px_-10px_rgba(0,0,0,0.5)];
+  /* Popular pricing card with highlight */
+  .pricing-card-popular {
+    @apply pricing-card border-primary;
+    @apply relative;
   }
-  
-  /* Popular card styles */
-  .popular-card {
-    @apply border rounded-lg transition-all relative overflow-hidden;
-    @apply bg-white/90 backdrop-blur-md border-white/20 shadow-sm hover:shadow-md;
-    @apply p-5 sm:p-6 flex flex-col h-full;
-  }
-  
-  /* Dark mode popular card styles */
-  .dark .popular-card {
-    @apply from-gray-800/80 to-gray-900/95 bg-gradient-to-br;
-    @apply border-blue-500/50 backdrop-blur-xl;
-    @apply shadow-[0_15px_30px_-5px_rgba(59,130,246,0.2)];
+
+  /* Popular badge for pricing card */
+  .popular-badge {
+    @apply absolute top-0 right-0 bg-primary text-primary-foreground;
+    @apply px-4 py-1 rounded-bl-lg rounded-tr-xl text-xs font-semibold;
   }
 
   /* Caption card component with mobile-first design */
   .caption-card {
-    @apply border rounded-lg p-3 sm:p-4 transition-all cursor-pointer hover:shadow-md w-full relative;
+    @apply base-card p-3 sm:p-4 cursor-pointer w-full;
   }
   
   /* Active state for caption card */
@@ -157,35 +127,21 @@
     @apply border-primary bg-primary/5;
   }
 
-  /* Dark mode enhancements for caption card */
-  .dark .caption-card {
-    @apply hover:border-blue-500/30 hover:bg-gray-800/50;
-  }
-  
-  /* Dark mode selected caption card state */
-  .dark .caption-card.selected {
-    @apply border-blue-500/50 bg-blue-900/20;
-  }
-
   /* Improved visibility on mobile */
   .copy-button {
-    @apply opacity-0 transition-opacity absolute top-2 right-2 p-2 rounded-full bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm;
+    @apply opacity-0 transition-opacity absolute top-2 right-2 p-2 rounded-full;
+    @apply bg-background text-foreground;
   }
 
   /* Responsive container */
   .preview-container {
-    @apply bg-white dark:bg-gray-900 rounded-lg overflow-hidden shadow-sm w-full;
-  }
-  
-  /* Dark mode glass effect for preview container */
-  .dark .preview-container {
-    @apply bg-gray-900/90 backdrop-blur-md border border-white/10;
-    box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.15);
+    @apply bg-card text-card-foreground rounded-lg overflow-hidden shadow-subtle w-full;
   }
 
   /* Improved mobile caption overlay */
   .caption-overlay {
-    @apply absolute bottom-0 left-0 right-0 bg-black bg-opacity-70 backdrop-blur-sm p-3 sm:p-4 text-white max-h-[70%] overflow-y-auto;
+    @apply absolute bottom-0 left-0 right-0 bg-black/70 p-3 sm:p-4 text-white;
+    @apply max-h-[70%] overflow-y-auto;
   }
 
   /* More spacing on mobile */
@@ -195,11 +151,11 @@
 
   /* Better touch targets for hashtags */
   .hashtag {
-    @apply bg-gray-100 dark:bg-gray-800 px-2 py-1 rounded text-xs text-blue-600 dark:text-blue-400 inline-block mb-1 mr-1;
+    @apply bg-muted px-2 py-1 rounded text-xs text-primary inline-block mb-1 mr-1;
   }
 
   .hashtag-overlay {
-    @apply text-blue-300 text-xs inline-block mr-2 mb-1;
+    @apply text-primary-foreground/90 text-xs inline-block mr-2 mb-1;
   }
 
   /* Improved transition for shared content */
@@ -209,7 +165,8 @@
 
   /* Mobile navigation improvements */
   .mobile-nav {
-    @apply fixed bottom-0 left-0 right-0 bg-background border-t border-border flex justify-around p-2 z-50 md:hidden;
+    @apply fixed bottom-0 left-0 right-0 bg-background border-t border-border;
+    @apply flex justify-around p-2 z-50 md:hidden;
   }
 
   /* Responsive padding for content areas */
@@ -231,41 +188,24 @@
     @apply overflow-y-auto overscroll-contain -webkit-overflow-scrolling-touch;
   }
 
-  /* Status badge with dark mode enhancements */
+  /* Status badge with mode enhancements */
   .status-badge {
     @apply px-2.5 py-1 rounded-full text-xs font-medium;
-  }
-  
-  /* Dark mode enhancement for better contrast in badges */
-  .dark .status-badge {
-    @apply shadow-[0_0_10px_rgba(59,130,246,0.3)];
   }
 
   /* Premium gradient background for profile headers */
   .profile-header-gradient {
-    @apply bg-gradient-to-r from-blue-600 to-indigo-700;
-  }
-  
-  /* Dark mode profile header gradient */
-  .dark .profile-header-gradient {
-    @apply from-blue-600/90 to-indigo-800/90 backdrop-blur-lg;
-    box-shadow: 0 10px 30px -10px rgba(59, 130, 246, 0.5);
+    @apply bg-primary/90 text-primary-foreground;
   }
 
   /* Profile card with premium appearance */
   .profile-card {
-    @apply bg-card text-card-foreground rounded-2xl overflow-hidden shadow-sm;
+    @apply base-card;
   }
-  
-  /* Dark mode profile card */
-  .dark .profile-card {
-    @apply bg-gray-900/80 backdrop-blur-xl border border-white/10;
-    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.25);
-  }
-  
+
   /* Wizard component enhancements */
   .wizard-card {
-    @apply bg-white dark:bg-gray-900 rounded-xl shadow-md overflow-hidden border border-gray-200 dark:border-gray-800;
+    @apply base-card border-muted;
   }
   
   /* Wizard step styles */
@@ -275,44 +215,83 @@
   
   /* Active wizard step */
   .wizard-step.active {
-    @apply text-primary dark:text-primary;
+    @apply text-primary;
   }
   
   /* Completed wizard step */
   .wizard-step.completed {
     @apply text-green-500 dark:text-green-400;
   }
-  
-  /* Dark mode wizard step */
-  .dark .wizard-step {
-    @apply text-gray-400;
-  }
-  
+
   /* Niche selector and other wizard inputs for better contrast */
   .niche-item {
-    @apply bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 
-           border border-gray-300 dark:border-gray-700 rounded-lg p-4 transition-all
-           cursor-pointer select-none;
+    @apply bg-muted/50 hover:bg-muted border border-border rounded-lg p-4;
+    @apply transition-all cursor-pointer select-none;
   }
   
   /* Selected niche item */
   .niche-item.selected {
-    @apply bg-blue-50 dark:bg-blue-900/30 border-blue-500 dark:border-blue-500;
+    @apply bg-primary/10 border-primary;
   }
   
   /* Stats card improvements */
   .stats-card {
-    @apply bg-white dark:bg-gray-800 rounded-lg p-4 border border-gray-200 dark:border-gray-700 transition-all;
+    @apply base-card p-4;
   }
-  
-  /* Stats card hover in dark mode */
-  .dark .stats-card {
-    @apply hover:border-gray-600;
-  }
-  
-  /* Fix low contrast text in dark mode */
+
+  /* Fix low contrast text */
   .dark-text-fix {
-    @apply text-gray-800 dark:text-gray-100;
+    @apply text-foreground;
+  }
+
+  /* Pricing features list */
+  .pricing-features {
+    @apply space-y-2 my-4 flex-grow;
+  }
+
+  /* Pricing feature item */
+  .pricing-feature {
+    @apply flex items-start space-x-2 text-sm;
+  }
+
+  /* Pricing feature icon */
+  .pricing-feature-icon {
+    @apply text-green-500 flex-shrink-0 mt-0.5;
+  }
+
+  /* Pricing card header */
+  .pricing-card-header {
+    @apply mb-4;
+  }
+
+  /* Pricing card title */
+  .pricing-card-title {
+    @apply text-xl font-bold;
+  }
+
+  /* Pricing card description */
+  .pricing-card-description {
+    @apply text-sm text-muted-foreground mt-1;
+  }
+
+  /* Pricing amount */
+  .pricing-amount {
+    @apply text-3xl font-bold my-4 flex items-end;
+  }
+
+  /* Pricing period */
+  .pricing-period {
+    @apply text-sm text-muted-foreground ml-1 mb-1;
+  }
+
+  /* Pricing save tag */
+  .pricing-save {
+    @apply text-sm text-green-600 dark:text-green-400 mt-1;
+  }
+
+  /* Pricing CTA button */
+  .pricing-cta {
+    @apply w-full mt-4;
   }
 
   /* Media query for touch devices with larger touch targets */
