@@ -59,12 +59,12 @@ const Profile: React.FC = () => {
   
   if (loading) {
     return (
-      <div className="min-h-screen bg-gray-50">
+      <div className="min-h-screen bg-background text-foreground">
         <Navbar />
         <div className="flex items-center justify-center min-h-[80vh]">
           <div className="flex flex-col items-center">
-            <div className="w-12 h-12 border-4 border-t-blue-500 border-blue-200 rounded-full animate-spin"></div>
-            <p className="mt-4 text-gray-600">Loading profile...</p>
+            <div className="w-12 h-12 border-4 border-t-primary border-primary/30 rounded-full animate-spin"></div>
+            <p className="mt-4 text-muted-foreground">Loading profile...</p>
           </div>
         </div>
       </div>
@@ -73,12 +73,12 @@ const Profile: React.FC = () => {
   
   if (!user) {
     return (
-      <div className="min-h-screen bg-gray-50">
+      <div className="min-h-screen bg-background text-foreground">
         <Navbar />
         <div className="container mx-auto px-4 sm:px-6 py-8">
-          <div className="bg-white rounded-2xl shadow-subtle p-8 text-center">
-            <h2 className="text-xl font-semibold text-gray-800 mb-2">Profile Not Found</h2>
-            <p className="text-gray-600">
+          <div className="bg-card text-card-foreground rounded-2xl shadow-subtle p-8 text-center">
+            <h2 className="text-xl font-semibold mb-2">Profile Not Found</h2>
+            <p className="text-muted-foreground">
               Unable to load your profile data. Please try again later.
             </p>
           </div>
@@ -88,10 +88,10 @@ const Profile: React.FC = () => {
   }
   
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-background text-foreground">
       <Navbar />
       
-      <main className="container mx-auto px-4 sm:px-6 py-8 max-w-6xl">
+      <main className="container mx-auto px-4 sm:px-6 py-8 max-w-6xl pt-24 sm:pt-32">
         <div className="grid grid-cols-1 gap-8">
           {/* Profile Card */}
           <ProfileCard 

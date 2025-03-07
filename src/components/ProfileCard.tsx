@@ -13,11 +13,11 @@ const ProfileCard: React.FC<ProfileCardProps> = ({ user, onEditProfile }) => {
   const daysRemaining = user.planExpiryDate ? getDaysRemaining(user.planExpiryDate) : null;
   
   return (
-    <div className="glass-card rounded-2xl overflow-hidden animate-scale-in">
-      <div className="relative h-32 bg-gradient-to-r from-blue-500 to-indigo-600">
+    <div className="bg-card text-card-foreground rounded-2xl overflow-hidden shadow-sm animate-scale-in">
+      <div className="relative h-32 bg-gradient-to-r from-blue-600 to-indigo-700 dark:from-blue-500 dark:to-indigo-600">
         <button 
           onClick={onEditProfile}
-          className="absolute top-4 right-4 bg-white bg-opacity-20 backdrop-blur-md text-white px-4 py-2 rounded-lg text-sm font-medium transition-all duration-300 hover:bg-opacity-30"
+          className="absolute top-4 right-4 bg-white/20 backdrop-blur-md text-white px-4 py-2 rounded-lg text-sm font-medium transition-all duration-300 hover:bg-white/30"
         >
           Edit Profile
         </button>
@@ -25,7 +25,7 @@ const ProfileCard: React.FC<ProfileCardProps> = ({ user, onEditProfile }) => {
       
       <div className="px-6 pb-6">
         <div className="flex flex-col sm:flex-row items-start sm:items-center -mt-12 sm:-mt-16 mb-6">
-          <div className="relative w-24 h-24 sm:w-32 sm:h-32 rounded-full border-4 border-white shadow-lg overflow-hidden">
+          <div className="relative w-24 h-24 sm:w-32 sm:h-32 rounded-full border-4 border-background shadow-lg overflow-hidden">
             <img 
               src={user.profilePictureUrl} 
               alt={user.fullName} 
@@ -36,7 +36,7 @@ const ProfileCard: React.FC<ProfileCardProps> = ({ user, onEditProfile }) => {
           
           <div className="mt-4 sm:mt-0 sm:ml-6">
             <h1 className="text-2xl sm:text-3xl font-bold">{user.fullName}</h1>
-            <div className="mt-1 flex items-center space-x-1.5 text-gray-600">
+            <div className="mt-1 flex items-center space-x-1.5 text-muted-foreground">
               <Mail size={16} />
               <span>{user.email}</span>
             </div>
@@ -46,14 +46,14 @@ const ProfileCard: React.FC<ProfileCardProps> = ({ user, onEditProfile }) => {
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div className="space-y-3">
             <div>
-              <div className="text-sm text-gray-500">Subscription Plan</div>
+              <div className="text-sm text-muted-foreground">Subscription Plan</div>
               <div className="flex items-center mt-1">
                 <span className={`status-badge ${getSubscriptionBadgeClass(user.subscriptionTier)}`}>
                   {user.subscriptionTier}
                 </span>
                 
                 {daysRemaining !== null && (
-                  <span className="ml-2 text-sm text-gray-600">
+                  <span className="ml-2 text-sm text-muted-foreground">
                     ({daysRemaining} days remaining)
                   </span>
                 )}
@@ -63,8 +63,8 @@ const ProfileCard: React.FC<ProfileCardProps> = ({ user, onEditProfile }) => {
           
           <div className="space-y-3">
             <div>
-              <div className="text-sm text-gray-500">Member Since</div>
-              <div className="flex items-center mt-1 text-gray-700">
+              <div className="text-sm text-muted-foreground">Member Since</div>
+              <div className="flex items-center mt-1 text-muted-foreground">
                 <Calendar size={16} className="mr-1.5" />
                 <span>{formatDate(user.dateJoined)}</span>
               </div>

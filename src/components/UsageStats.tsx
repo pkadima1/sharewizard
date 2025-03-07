@@ -38,6 +38,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { Link } from 'react-router-dom';
 
 interface UsageStatsProps {
   stats: UserStats;
@@ -222,19 +223,19 @@ const UsageStats: React.FC<UsageStatsProps> = ({ stats, subscriptionTier }) => {
       
       <div className="space-y-6">
         {/* Plan Information */}
-        <div className="stats-card">
+        <div className="bg-card text-card-foreground rounded-lg p-6 shadow-sm">
           <div className="flex items-center justify-between mb-4">
             <div className="flex items-center">
-              <CircleDollarSign className="w-5 h-5 text-blue-500 mr-2" />
+              <CircleDollarSign className="w-5 h-5 text-primary mr-2" />
               <h3 className="font-medium">Current Plan: {formatPlanName(planType)}</h3>
             </div>
             {endDate && (
               <div className="flex items-center text-sm">
-                <Calendar className="w-4 h-4 text-gray-500 mr-1" />
-                <span>
+                <Calendar className="w-4 h-4 text-muted-foreground mr-1" />
+                <span className="text-muted-foreground">
                   {planType === 'trial' ? (
                     <span className="flex items-center">
-                      <Timer className="w-4 h-4 text-blue-500 mr-1" />
+                      <Timer className="w-4 h-4 text-primary mr-1" />
                       Trial ends in {daysRemaining} day{daysRemaining !== 1 ? 's' : ''}
                     </span>
                   ) : (
@@ -253,19 +254,19 @@ const UsageStats: React.FC<UsageStatsProps> = ({ stats, subscriptionTier }) => {
             </span>
           </div>
           
-          <div className="relative h-2 bg-gray-100 rounded-full overflow-hidden">
+          <div className="relative h-2 bg-muted rounded-full overflow-hidden">
             <div 
               className={`absolute top-0 left-0 h-full rounded-full transition-all duration-500 ease-out ${
-                usagePercentage > 90 ? 'bg-red-500' : usagePercentage > 75 ? 'bg-orange-500' : 'bg-gradient-to-r from-blue-400 to-blue-600'
+                usagePercentage > 90 ? 'bg-destructive' : usagePercentage > 75 ? 'bg-orange-500 dark:bg-orange-600' : 'bg-gradient-to-r from-blue-400 to-blue-600 dark:from-blue-500 dark:to-blue-700'
               }`}
               style={{ width: `${usagePercentage}%` }}
             ></div>
           </div>
           
-          <div className="mt-2 text-sm text-gray-500 flex justify-between">
+          <div className="mt-2 text-sm text-muted-foreground flex justify-between">
             <div>{requestsLimit - requestsUsed} requests remaining</div>
             {isRunningLow && (
-              <div className={isOutOfRequests ? 'text-red-500 font-medium flex items-center' : 'text-orange-500 flex items-center'}>
+              <div className={isOutOfRequests ? 'text-destructive font-medium flex items-center' : 'text-orange-500 dark:text-orange-400 flex items-center'}>
                 {isOutOfRequests ? (
                   <>
                     <AlertTriangle className="w-4 h-4 mr-1" />
@@ -282,8 +283,14 @@ const UsageStats: React.FC<UsageStatsProps> = ({ stats, subscriptionTier }) => {
           </div>
           
           {/* Upgrade Prompt */}
-          <div className={`mt-4 p-4 rounded-lg border ${isOutOfRequests ? 'bg-red-50 border-red-100' : isRunningLow ? 'bg-orange-50 border-orange-100' : 'bg-gray-50 border-gray-100'}`}>
-            <p className="text-sm text-gray-700 mb-3">{upgradeMessage}</p>
+          <div className={`mt-4 p-4 rounded-lg border ${
+            isOutOfRequests 
+              ? 'bg-destructive/10 border-destructive/20 dark:bg-destructive/20 dark:border-destructive/30' 
+              : isRunningLow 
+                ? 'bg-orange-50 border-orange-100 dark:bg-orange-950/20 dark:border-orange-900/30' 
+                : 'bg-muted/50 border-border'
+          }`}>
+            <p className="text-sm text-card-foreground mb-3">{upgradeMessage}</p>
             <div className="flex flex-col sm:flex-row gap-3">
               {/* Show different buttons based on plan type */}
               {planType === 'free' && (
@@ -304,9 +311,9 @@ const UsageStats: React.FC<UsageStatsProps> = ({ stats, subscriptionTier }) => {
                     variant="default" 
                     size="sm" 
                     className="w-full sm:w-auto"
-                    onClick={() => handleUpgrade('premium')}
+                    asChild
                   >
-                    Upgrade Now
+                    <Link to="/pricing">Upgrade Now</Link>
                   </Button>
                   <Button 
                     variant="outline" 
@@ -326,14 +333,14 @@ const UsageStats: React.FC<UsageStatsProps> = ({ stats, subscriptionTier }) => {
                     variant="default" 
                     size="sm" 
                     className="w-full sm:w-auto"
-                    onClick={() => handleUpgrade('premium')}
+                    asChild
                   >
-                    Upgrade to Premium
+                    <Link to="/pricing">Upgrade to Premium</Link>
                   </Button>
                   <Button 
                     variant="outline" 
                     size="sm" 
-                    className="w-full sm:w-auto bg-green-50 border-green-200 text-green-700 hover:bg-green-100 hover:text-green-800"
+                    className="w-full sm:w-auto bg-green-50 border-green-200 text-green-700 hover:bg-green-100 hover:text-green-800 dark:bg-green-900/20 dark:border-green-800/30 dark:text-green-400 dark:hover:bg-green-900/40 dark:hover:text-green-300"
                     onClick={() => setIsUpgradeModalOpen(true)}
                   >
                     <ShoppingCart className="w-4 h-4 mr-2" />
@@ -346,7 +353,7 @@ const UsageStats: React.FC<UsageStatsProps> = ({ stats, subscriptionTier }) => {
                 <Button 
                   variant="default" 
                   size="sm" 
-                  className="w-full sm:w-auto bg-green-600 hover:bg-green-700"
+                  className="w-full sm:w-auto bg-green-600 hover:bg-green-700 dark:bg-green-700 dark:hover:bg-green-800"
                   onClick={() => setIsUpgradeModalOpen(true)}
                 >
                   <ShoppingCart className="w-4 h-4 mr-2" />
@@ -373,76 +380,76 @@ const UsageStats: React.FC<UsageStatsProps> = ({ stats, subscriptionTier }) => {
         {/* Key Metrics */}
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
           {/* Posts Generated */}
-          <div className="stats-card flex items-start">
-            <div className="p-2 rounded-full bg-blue-50">
-              <MessageSquareText className="w-5 h-5 text-blue-500" />
+          <div className="bg-card text-card-foreground rounded-lg p-4 shadow-sm flex items-start">
+            <div className="p-2 rounded-full bg-blue-100 dark:bg-blue-900/30">
+              <MessageSquareText className="w-5 h-5 text-blue-500 dark:text-blue-400" />
             </div>
             <div className="ml-3">
-              <div className="text-sm text-gray-500">Posts Generated</div>
+              <div className="text-sm text-muted-foreground">Posts Generated</div>
               <div className="text-xl font-semibold">{stats.postsGenerated}</div>
-              <div className="text-xs text-gray-400">Limit: {planLimits.postsPerMonth}/month</div>
+              <div className="text-xs text-muted-foreground">Limit: {planLimits.postsPerMonth}/month</div>
             </div>
           </div>
           
           {/* Drafts Saved */}
-          <div className="stats-card flex items-start">
-            <div className="p-2 rounded-full bg-purple-50">
-              <FileEdit className="w-5 h-5 text-purple-500" />
+          <div className="bg-card text-card-foreground rounded-lg p-4 shadow-sm flex items-start">
+            <div className="p-2 rounded-full bg-purple-100 dark:bg-purple-900/30">
+              <FileEdit className="w-5 h-5 text-purple-500 dark:text-purple-400" />
             </div>
             <div className="ml-3">
-              <div className="text-sm text-gray-500">Drafts Saved</div>
+              <div className="text-sm text-muted-foreground">Drafts Saved</div>
               <div className="text-xl font-semibold">{stats.postsDrafted}</div>
-              <div className="text-xs text-gray-400">Limit: {planLimits.drafts}</div>
+              <div className="text-xs text-muted-foreground">Limit: {planLimits.drafts}</div>
             </div>
           </div>
           
           {/* Posts Shared */}
-          <div className="stats-card flex items-start">
-            <div className="p-2 rounded-full bg-green-50">
-              <Share2 className="w-5 h-5 text-green-500" />
+          <div className="bg-card text-card-foreground rounded-lg p-4 shadow-sm flex items-start">
+            <div className="p-2 rounded-full bg-green-100 dark:bg-green-900/30">
+              <Share2 className="w-5 h-5 text-green-500 dark:text-green-400" />
             </div>
             <div className="ml-3">
-              <div className="text-sm text-gray-500">Posts Shared</div>
+              <div className="text-sm text-muted-foreground">Posts Shared</div>
               <div className="text-xl font-semibold">{stats.postsShared.total}</div>
-              <div className="text-xs text-gray-400">Across all platforms</div>
+              <div className="text-xs text-muted-foreground">Across all platforms</div>
             </div>
           </div>
         </div>
         
         {/* Shares by Platform */}
-        <div className="stats-card">
+        <div className="bg-card text-card-foreground rounded-lg p-6 shadow-sm">
           <h3 className="font-medium mb-4">Shares by Platform</h3>
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
             <div className="text-center">
-              <div className="w-10 h-10 mx-auto bg-blue-50 rounded-full flex items-center justify-center">
+              <div className="w-10 h-10 mx-auto bg-blue-100 dark:bg-blue-900/30 rounded-full flex items-center justify-center">
                 <Twitter className="w-5 h-5 text-blue-400" />
               </div>
               <div className="mt-2 text-sm font-medium">{stats.postsShared.byPlatform.twitter}</div>
-              <div className="text-xs text-gray-500">Twitter</div>
+              <div className="text-xs text-muted-foreground">Twitter</div>
             </div>
             
             <div className="text-center">
-              <div className="w-10 h-10 mx-auto bg-blue-50 rounded-full flex items-center justify-center">
-                <Linkedin className="w-5 h-5 text-blue-700" />
+              <div className="w-10 h-10 mx-auto bg-blue-100 dark:bg-blue-900/30 rounded-full flex items-center justify-center">
+                <Linkedin className="w-5 h-5 text-blue-700 dark:text-blue-500" />
               </div>
               <div className="mt-2 text-sm font-medium">{stats.postsShared.byPlatform.linkedin}</div>
-              <div className="text-xs text-gray-500">LinkedIn</div>
+              <div className="text-xs text-muted-foreground">LinkedIn</div>
             </div>
             
             <div className="text-center">
-              <div className="w-10 h-10 mx-auto bg-blue-50 rounded-full flex items-center justify-center">
-                <Facebook className="w-5 h-5 text-blue-600" />
+              <div className="w-10 h-10 mx-auto bg-blue-100 dark:bg-blue-900/30 rounded-full flex items-center justify-center">
+                <Facebook className="w-5 h-5 text-blue-600 dark:text-blue-500" />
               </div>
               <div className="mt-2 text-sm font-medium">{stats.postsShared.byPlatform.facebook}</div>
-              <div className="text-xs text-gray-500">Facebook</div>
+              <div className="text-xs text-muted-foreground">Facebook</div>
             </div>
             
             <div className="text-center">
-              <div className="w-10 h-10 mx-auto bg-gray-50 rounded-full flex items-center justify-center">
-                <Share className="w-5 h-5 text-gray-600" />
+              <div className="w-10 h-10 mx-auto bg-gray-100 dark:bg-gray-800 rounded-full flex items-center justify-center">
+                <Share className="w-5 h-5 text-gray-600 dark:text-gray-400" />
               </div>
               <div className="mt-2 text-sm font-medium">{stats.postsShared.byPlatform.other}</div>
-              <div className="text-xs text-gray-500">Other Apps</div>
+              <div className="text-xs text-muted-foreground">Other Apps</div>
             </div>
           </div>
         </div>
@@ -468,7 +475,7 @@ const UsageStats: React.FC<UsageStatsProps> = ({ stats, subscriptionTier }) => {
                     variant={selectedQuantity === qty ? "default" : "outline"}
                     size="sm"
                     onClick={() => setSelectedQuantity(qty)}
-                    className={`flex-1 ${selectedQuantity === qty ? 'bg-blue-500' : ''}`}
+                    className={`flex-1 ${selectedQuantity === qty ? 'bg-primary' : ''}`}
                   >
                     {qty} {qty === 1 ? 'pack' : 'packs'}
                   </Button>
@@ -476,7 +483,7 @@ const UsageStats: React.FC<UsageStatsProps> = ({ stats, subscriptionTier }) => {
               </div>
             </div>
             
-            <div className="bg-gray-50 p-3 rounded-lg">
+            <div className="bg-muted p-3 rounded-lg">
               <div className="flex justify-between mb-2">
                 <span>Price per pack:</span>
                 <span className="font-medium">$9.99</span>
@@ -485,7 +492,7 @@ const UsageStats: React.FC<UsageStatsProps> = ({ stats, subscriptionTier }) => {
                 <span>Total:</span>
                 <span>${(9.99 * selectedQuantity).toFixed(2)}</span>
               </div>
-              <div className="text-xs text-gray-500 mt-1">
+              <div className="text-xs text-muted-foreground mt-1">
                 Each pack gives you 50 additional requests that never expire.
               </div>
             </div>
@@ -495,7 +502,7 @@ const UsageStats: React.FC<UsageStatsProps> = ({ stats, subscriptionTier }) => {
             <Button variant="outline" onClick={() => setIsUpgradeModalOpen(false)}>
               Cancel
             </Button>
-            <Button onClick={handleBuyFlex} className="bg-green-600 hover:bg-green-700">
+            <Button onClick={handleBuyFlex} className="bg-green-600 hover:bg-green-700 dark:bg-green-700 dark:hover:bg-green-800">
               <ShoppingCart className="w-4 h-4 mr-2" />
               Purchase Now
             </Button>
@@ -515,7 +522,11 @@ const UsageStats: React.FC<UsageStatsProps> = ({ stats, subscriptionTier }) => {
           
           <div className="py-4 space-y-4">
             <div 
-              className={`p-4 border rounded-lg cursor-pointer transition-all ${selectedPlan === 'basic' ? 'border-blue-500 bg-blue-50' : 'border-gray-200'}`}
+              className={`p-4 border rounded-lg cursor-pointer transition-all ${
+                selectedPlan === 'basic' 
+                  ? 'border-primary bg-primary/10 dark:bg-primary/20' 
+                  : 'border-border bg-card'
+              }`}
               onClick={() => setSelectedPlan('basic')}
             >
               <div className="flex justify-between items-center mb-2">
@@ -524,22 +535,26 @@ const UsageStats: React.FC<UsageStatsProps> = ({ stats, subscriptionTier }) => {
               </div>
               <ul className="text-sm space-y-1">
                 <li className="flex items-start">
-                  <div className="text-green-500 mr-2">✓</div>
+                  <div className="text-green-500 dark:text-green-400 mr-2">✓</div>
                   <span>75 requests/month</span>
                 </li>
                 <li className="flex items-start">
-                  <div className="text-green-500 mr-2">✓</div>
+                  <div className="text-green-500 dark:text-green-400 mr-2">✓</div>
                   <span>Single platform support</span>
                 </li>
                 <li className="flex items-start">
-                  <div className="text-green-500 mr-2">✓</div>
+                  <div className="text-green-500 dark:text-green-400 mr-2">✓</div>
                   <span>Basic analytics</span>
                 </li>
               </ul>
             </div>
             
             <div 
-              className={`p-4 border rounded-lg cursor-pointer transition-all ${selectedPlan === 'premium' ? 'border-blue-500 bg-blue-50' : 'border-gray-200'}`}
+              className={`p-4 border rounded-lg cursor-pointer transition-all ${
+                selectedPlan === 'premium' 
+                  ? 'border-primary bg-primary/10 dark:bg-primary/20' 
+                  : 'border-border bg-card'
+              }`}
               onClick={() => setSelectedPlan('premium')}
             >
               <div className="flex justify-between items-center mb-2">
@@ -548,21 +563,21 @@ const UsageStats: React.FC<UsageStatsProps> = ({ stats, subscriptionTier }) => {
               </div>
               <ul className="text-sm space-y-1">
                 <li className="flex items-start">
-                  <div className="text-green-500 mr-2">✓</div>
+                  <div className="text-green-500 dark:text-green-400 mr-2">✓</div>
                   <span>250 requests/month</span>
                 </li>
                 <li className="flex items-start">
-                  <div className="text-green-500 mr-2">✓</div>
+                  <div className="text-green-500 dark:text-green-400 mr-2">✓</div>
                   <span>Multi-platform support</span>
                 </li>
                 <li className="flex items-start">
-                  <div className="text-green-500 mr-2">✓</div>
+                  <div className="text-green-500 dark:text-green-400 mr-2">✓</div>
                   <span>Advanced analytics and features</span>
                 </li>
               </ul>
             </div>
             
-            <div className="bg-gray-50 p-3 rounded-lg text-xs text-gray-600">
+            <div className="bg-muted p-3 rounded-lg text-xs text-muted-foreground">
               By starting a trial, you agree to provide payment details. Your selected plan will automatically begin after the 5-day trial period ends unless canceled.
             </div>
           </div>
