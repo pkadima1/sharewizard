@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { UserStats, SubscriptionTier } from '@/types';
 import { PLAN_LIMITS, DEFAULT_REQUEST_LIMIT } from '@/lib/constants';
@@ -18,9 +19,16 @@ import {
   Timer
 } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
-import { calculateUsagePercentage, formatPlanName, getDaysRemainingInPlan, getSuggestedUpgrade } from '@/lib/subscriptionUtils';
+import { 
+  calculateUsagePercentage, 
+  formatPlanName, 
+  getDaysRemainingInPlan, 
+  getSuggestedUpgrade,
+  getStripePriceId,
+  STRIPE_CUSTOMER_PORTAL_URL
+} from '@/lib/subscriptionUtils';
 import { Button } from '@/components/ui/button';
-import { createSubscriptionCheckout, createFlexCheckout, openCustomerPortal } from '@/lib/stripe';
+import { createSubscriptionCheckout, createFlexCheckout } from '@/lib/stripe';
 import { useToast } from '@/hooks/use-toast';
 import {
   Dialog,
@@ -42,6 +50,7 @@ const UsageStats: React.FC<UsageStatsProps> = ({ stats, subscriptionTier }) => {
   const [isUpgradeModalOpen, setIsUpgradeModalOpen] = useState(false);
   const [selectedQuantity, setSelectedQuantity] = useState(1);
   const [isActivatingTrial, setIsActivatingTrial] = useState(false);
+  const [selectedPlan, setSelectedPlan] = useState<'basic' | 'premium'>('basic');
   
   // Calculate usage percentages
   const aiUsagePercentage = Math.min(
@@ -81,7 +90,9 @@ const UsageStats: React.FC<UsageStatsProps> = ({ stats, subscriptionTier }) => {
 
     try {
       setIsActivatingTrial(true);
-      const success = await activateFreeTrial();
+      
+      // First mark user as trial in the database
+      const success = await activateFreeTrial(selectedPlan);
       
       if (!success) {
         toast({
@@ -89,7 +100,24 @@ const UsageStats: React.FC<UsageStatsProps> = ({ stats, subscriptionTier }) => {
           description: "Unable to activate your trial. Please try again later.",
           variant: "destructive",
         });
+        return;
       }
+      
+      // Then redirect to Stripe checkout for the selected plan with trial period
+      const priceId = getStripePriceId(selectedPlan, 'monthly');
+      
+      if (!priceId) {
+        toast({
+          title: "Error",
+          description: "Invalid plan selection",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      const url = await createSubscriptionCheckout(currentUser.uid, priceId);
+      window.location.assign(url);
+      
     } catch (error: any) {
       console.error("Error starting trial:", error);
       toast({
@@ -103,7 +131,7 @@ const UsageStats: React.FC<UsageStatsProps> = ({ stats, subscriptionTier }) => {
   };
 
   // Handle plan upgrade
-  const handleUpgrade = async () => {
+  const handleUpgrade = async (plan: 'basic' | 'premium' = 'basic') => {
     if (!currentUser) {
       toast({
         title: "Error",
@@ -114,8 +142,8 @@ const UsageStats: React.FC<UsageStatsProps> = ({ stats, subscriptionTier }) => {
     }
 
     try {
-      // Get the correct Stripe price ID using the utility function
-      const priceId = getStripePriceId(planType === 'free' || planType === 'trial' ? 'basic' : 'premium', 'monthly');
+      // Get the correct Stripe price ID
+      const priceId = getStripePriceId(plan, 'monthly');
       
       if (!priceId) {
         toast({
@@ -138,26 +166,6 @@ const UsageStats: React.FC<UsageStatsProps> = ({ stats, subscriptionTier }) => {
     }
   };
 
-  // Helper function to get the correct Stripe price ID
-  const getStripePriceId = (planType: string, cycle: 'monthly' | 'yearly'): string => {
-    // Return actual Stripe price IDs from your Stripe dashboard
-    // These should match the IDs in your Stripe account
-    switch (planType) {
-      case 'basic':
-        return cycle === 'monthly' 
-          ? 'price_1QzLExGCd9fidigrcqSSEhSM'  // Use your actual Stripe price ID
-          : 'price_1QzLIQGCd9fidigre35Wc90Y'; // Use your actual Stripe price ID
-      case 'premium':
-        return cycle === 'monthly'
-          ? 'price_1QzL3bGCd9fidigrpAXemWMN'  // Use your actual Stripe price ID
-          : 'price_1QzL6ZGCd9fidigrckYnMw6w'; // Use your actual Stripe price ID
-      case 'flexy':
-        return 'price_1QzLOMGCd9fidigrt9Bk0C67'; // Use your actual Stripe price ID
-      default:
-        return '';
-    }
-  };
-
   // Handle buying Flex packs
   const handleBuyFlex = async () => {
     if (!currentUser) {
@@ -174,7 +182,7 @@ const UsageStats: React.FC<UsageStatsProps> = ({ stats, subscriptionTier }) => {
       setIsUpgradeModalOpen(false);
       
       // Buy flex pack
-      const priceId = "price_flex_pack"; // Replace with your actual price ID
+      const priceId = getStripePriceId('flexy', 'monthly');
       const url = await createFlexCheckout(currentUser.uid, priceId, selectedQuantity);
       window.location.assign(url);
     } catch (error: any) {
@@ -189,18 +197,8 @@ const UsageStats: React.FC<UsageStatsProps> = ({ stats, subscriptionTier }) => {
 
   // Handle opening customer portal
   const handleOpenPortal = async () => {
-    if (!currentUser) {
-      toast({
-        title: "Error",
-        description: "You must be logged in to manage your subscription",
-        variant: "destructive",
-      });
-      return;
-    }
-
     try {
-      const url = await openCustomerPortal(currentUser.uid);
-      window.location.assign(url);
+      window.location.href = STRIPE_CUSTOMER_PORTAL_URL;
     } catch (error: any) {
       console.error("Error opening customer portal:", error);
       toast({
@@ -209,6 +207,13 @@ const UsageStats: React.FC<UsageStatsProps> = ({ stats, subscriptionTier }) => {
         variant: "destructive",
       });
     }
+  };
+  
+  // Show plan selection dialog for trial
+  const [isTrialPlanDialogOpen, setIsTrialPlanDialogOpen] = useState(false);
+  
+  const openTrialPlanDialog = () => {
+    setIsTrialPlanDialogOpen(true);
   };
   
   return (
@@ -286,7 +291,7 @@ const UsageStats: React.FC<UsageStatsProps> = ({ stats, subscriptionTier }) => {
                   variant="default" 
                   size="sm" 
                   className="w-full sm:w-auto"
-                  onClick={handleStartTrial}
+                  onClick={openTrialPlanDialog}
                   disabled={isActivatingTrial}
                 >
                   {isActivatingTrial ? "Activating..." : "Start 5-Day Free Trial"}
@@ -299,7 +304,7 @@ const UsageStats: React.FC<UsageStatsProps> = ({ stats, subscriptionTier }) => {
                     variant="default" 
                     size="sm" 
                     className="w-full sm:w-auto"
-                    onClick={handleUpgrade}
+                    onClick={() => handleUpgrade('premium')}
                   >
                     Upgrade Now
                   </Button>
@@ -321,7 +326,7 @@ const UsageStats: React.FC<UsageStatsProps> = ({ stats, subscriptionTier }) => {
                     variant="default" 
                     size="sm" 
                     className="w-full sm:w-auto"
-                    onClick={handleUpgrade}
+                    onClick={() => handleUpgrade('premium')}
                   >
                     Upgrade to Premium
                   </Button>
@@ -493,6 +498,81 @@ const UsageStats: React.FC<UsageStatsProps> = ({ stats, subscriptionTier }) => {
             <Button onClick={handleBuyFlex} className="bg-green-600 hover:bg-green-700">
               <ShoppingCart className="w-4 h-4 mr-2" />
               Purchase Now
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+      
+      {/* Trial Plan Selection Dialog */}
+      <Dialog open={isTrialPlanDialogOpen} onOpenChange={setIsTrialPlanDialogOpen}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Choose Your Trial Plan</DialogTitle>
+            <DialogDescription>
+              Select a plan to try free for 5 days. Your card will be charged after the trial period ends.
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="py-4 space-y-4">
+            <div 
+              className={`p-4 border rounded-lg cursor-pointer transition-all ${selectedPlan === 'basic' ? 'border-blue-500 bg-blue-50' : 'border-gray-200'}`}
+              onClick={() => setSelectedPlan('basic')}
+            >
+              <div className="flex justify-between items-center mb-2">
+                <h3 className="font-medium">Basic Plan</h3>
+                <div className="text-sm font-semibold">£9.99/month</div>
+              </div>
+              <ul className="text-sm space-y-1">
+                <li className="flex items-start">
+                  <div className="text-green-500 mr-2">✓</div>
+                  <span>75 requests/month</span>
+                </li>
+                <li className="flex items-start">
+                  <div className="text-green-500 mr-2">✓</div>
+                  <span>Single platform support</span>
+                </li>
+                <li className="flex items-start">
+                  <div className="text-green-500 mr-2">✓</div>
+                  <span>Basic analytics</span>
+                </li>
+              </ul>
+            </div>
+            
+            <div 
+              className={`p-4 border rounded-lg cursor-pointer transition-all ${selectedPlan === 'premium' ? 'border-blue-500 bg-blue-50' : 'border-gray-200'}`}
+              onClick={() => setSelectedPlan('premium')}
+            >
+              <div className="flex justify-between items-center mb-2">
+                <h3 className="font-medium">Premium Plan</h3>
+                <div className="text-sm font-semibold">£59.99/month</div>
+              </div>
+              <ul className="text-sm space-y-1">
+                <li className="flex items-start">
+                  <div className="text-green-500 mr-2">✓</div>
+                  <span>250 requests/month</span>
+                </li>
+                <li className="flex items-start">
+                  <div className="text-green-500 mr-2">✓</div>
+                  <span>Multi-platform support</span>
+                </li>
+                <li className="flex items-start">
+                  <div className="text-green-500 mr-2">✓</div>
+                  <span>Advanced analytics and features</span>
+                </li>
+              </ul>
+            </div>
+            
+            <div className="bg-gray-50 p-3 rounded-lg text-xs text-gray-600">
+              By starting a trial, you agree to provide payment details. Your selected plan will automatically begin after the 5-day trial period ends unless canceled.
+            </div>
+          </div>
+          
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsTrialPlanDialogOpen(false)}>
+              Cancel
+            </Button>
+            <Button onClick={handleStartTrial} disabled={isActivatingTrial}>
+              {isActivatingTrial ? "Processing..." : "Start 5-Day Free Trial"}
             </Button>
           </DialogFooter>
         </DialogContent>

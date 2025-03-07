@@ -7,7 +7,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
-import { AlertCircle } from 'lucide-react';
+import { AlertCircle, Download, Share } from 'lucide-react';
 
 interface GeneratedCaptionsProps {
   selectedMedia: File | null;
@@ -90,6 +90,21 @@ const GeneratedCaptions: React.FC<GeneratedCaptionsProps> = ({
     setIsGenerating(true);
   };
 
+  const handleShareToSocial = () => {
+    // Create a simple share functionality
+    if (navigator.share && captions[selectedCaption]) {
+      navigator.share({
+        title: `${captions[selectedCaption].title} - EngagePerfect AI`,
+        text: `${captions[selectedCaption].caption}\n\n${captions[selectedCaption].cta}\n\n${captions[selectedCaption].hashtags.map(h => `#${h}`).join(' ')}`,
+        url: window.location.href,
+      })
+      .then(() => toast.success("Content shared successfully!"))
+      .catch(error => console.error("Error sharing:", error));
+    } else {
+      toast.info("Browser share functionality not available. Copy and share manually.");
+    }
+  };
+
   if (error) {
     return (
       <div className="flex flex-col items-center justify-center p-8 text-center">
@@ -117,22 +132,9 @@ const GeneratedCaptions: React.FC<GeneratedCaptionsProps> = ({
 
   if (isGenerating) {
     return (
-      <div className="w-full max-w-4xl mx-auto p-6">
-        <div className="flex mb-8">
-          {previewUrl && (
-            <div className="w-1/3 pr-6">
-              <div className="aspect-square bg-gray-100 rounded-lg overflow-hidden">
-                {selectedMedia && selectedMedia.type.startsWith('image') ? (
-                  <img src={previewUrl} alt="Preview" className="w-full h-full object-cover" />
-                ) : (
-                  <div className="flex items-center justify-center h-full bg-gray-200">
-                    <span className="text-gray-500">Media preview</span>
-                  </div>
-                )}
-              </div>
-            </div>
-          )}
-          <div className={`${previewUrl ? 'w-2/3' : 'w-full'}`}>
+      <div className="w-full max-w-6xl mx-auto p-6">
+        <div className="flex flex-col md:flex-row gap-6">
+          <div className="md:w-1/2 lg:w-3/5">
             <h2 className="text-xl font-semibold mb-4">Generating Captions...</h2>
             <div className="space-y-6">
               <div className="space-y-3">
@@ -156,13 +158,29 @@ const GeneratedCaptions: React.FC<GeneratedCaptionsProps> = ({
                 <Skeleton className="h-4 w-2/3" />
               </div>
             </div>
-            <div className="mt-6">
-              <p className="text-sm text-gray-500">
-                Creating engaging {selectedTone} captions for {selectedPlatform} 
-                in the {selectedNiche} niche...
-              </p>
-            </div>
           </div>
+          
+          {previewUrl && (
+            <div className="md:w-1/2 lg:w-2/5">
+              <div className="bg-gray-100 rounded-lg overflow-hidden">
+                {selectedMedia && selectedMedia.type.startsWith('image') ? (
+                  <div className="aspect-square w-full">
+                    <img src={previewUrl} alt="Preview" className="w-full h-full object-cover" />
+                  </div>
+                ) : (
+                  <div className="flex items-center justify-center h-64 bg-gray-200">
+                    <span className="text-gray-500">Media preview</span>
+                  </div>
+                )}
+              </div>
+              <div className="mt-4">
+                <p className="text-sm text-gray-500">
+                  Creating engaging {selectedTone} captions for {selectedPlatform} 
+                  in the {selectedNiche} niche...
+                </p>
+              </div>
+            </div>
+          )}
         </div>
       </div>
     );
@@ -179,103 +197,152 @@ const GeneratedCaptions: React.FC<GeneratedCaptionsProps> = ({
   }
 
   return (
-    <div className="w-full max-w-4xl mx-auto p-6">
-      <div className="flex flex-col md:flex-row mb-8 gap-6">
-        {previewUrl && (
-          <div className="md:w-1/3">
-            <div className="aspect-square bg-gray-100 rounded-lg overflow-hidden sticky top-6">
-              {selectedMedia && selectedMedia.type.startsWith('image') ? (
-                <img 
-                  src={previewUrl} 
-                  alt="Preview" 
-                  className="w-full h-full object-cover" 
-                />
-              ) : (
-                <div className="flex items-center justify-center h-full bg-gray-200">
-                  <span className="text-gray-500">Media preview</span>
+    <div className="w-full max-w-6xl mx-auto p-4">
+      <div className="flex justify-between items-center mb-6">
+        <h2 className="text-xl font-semibold">Choose Your Caption</h2>
+        <Button 
+          variant="outline" 
+          size="sm"
+          onClick={handleRegenerateClick}
+        >
+          Regenerate
+        </Button>
+      </div>
+      
+      <div className="flex flex-col md:flex-row gap-6">
+        {/* Captions List - Left Side */}
+        <div className="md:w-1/2 lg:w-3/5">
+          <div className="space-y-4">
+            {captions.map((caption, index) => (
+              <div 
+                key={index}
+                className={`p-4 border rounded-lg cursor-pointer transition-all hover:border-blue-300 hover:bg-blue-50 ${
+                  selectedCaption === index ? 'border-blue-500 bg-blue-50' : 'border-gray-200'
+                }`}
+                onClick={() => setSelectedCaption(index)}
+              >
+                <h3 className="font-medium mb-2">{caption.title}</h3>
+                <p className="text-sm text-gray-700 mb-3">{caption.caption.substring(0, 120)}...</p>
+                <div className="flex flex-wrap gap-1">
+                  {caption.hashtags.slice(0, 3).map((hashtag, idx) => (
+                    <span key={idx} className="bg-gray-100 px-2 py-0.5 rounded text-xs">
+                      #{hashtag}
+                    </span>
+                  ))}
+                  {caption.hashtags.length > 3 && (
+                    <span className="bg-gray-100 px-2 py-0.5 rounded text-xs">
+                      +{caption.hashtags.length - 3} more
+                    </span>
+                  )}
+                </div>
+                <div className="flex justify-end mt-2">
+                  <Button 
+                    variant="ghost" 
+                    size="sm"
+                    className="text-blue-600 hover:text-blue-700 hover:bg-blue-50"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      const text = `${caption.caption}\n\n${caption.cta}\n\n${caption.hashtags.map(h => `#${h}`).join(' ')}`;
+                      navigator.clipboard.writeText(text);
+                      toast.success("Caption copied to clipboard!");
+                    }}
+                  >
+                    Copy Caption
+                  </Button>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+        
+        {/* Preview - Right Side */}
+        <div className="md:w-1/2 lg:w-2/5">
+          <div className="sticky top-6 space-y-4">
+            <div className="bg-gray-100 dark:bg-gray-800 p-4 rounded-lg">
+              <div className="flex justify-between items-center mb-3">
+                <h3 className="font-medium">Preview</h3>
+                <div className="flex gap-2">
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-8 w-8"
+                    title="Share"
+                  >
+                    <Share className="h-4 w-4" />
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-8 w-8"
+                    title="Download"
+                  >
+                    <Download className="h-4 w-4" />
+                  </Button>
+                </div>
+              </div>
+              
+              {previewUrl && (
+                <div className="aspect-square w-full mb-4 rounded-md overflow-hidden">
+                  {selectedMedia && selectedMedia.type.startsWith('image') ? (
+                    <img 
+                      src={previewUrl} 
+                      alt="Preview" 
+                      className="w-full h-full object-cover" 
+                    />
+                  ) : (
+                    <div className="flex items-center justify-center h-full bg-gray-200">
+                      <span className="text-gray-500">Media preview</span>
+                    </div>
+                  )}
+                </div>
+              )}
+              
+              {captions.length > 0 && (
+                <div className="space-y-3">
+                  <h3 className="font-semibold">{captions[selectedCaption]?.title}</h3>
+                  <p className="text-sm whitespace-pre-line">{captions[selectedCaption]?.caption}</p>
+                  <p className="text-sm italic">{captions[selectedCaption]?.cta}</p>
+                  <div className="flex flex-wrap gap-1">
+                    {captions[selectedCaption]?.hashtags.map((hashtag, idx) => (
+                      <span key={idx} className="text-blue-600 text-sm">
+                        #{hashtag}
+                      </span>
+                    ))}
+                  </div>
+                  <div className="text-xs text-gray-500 pt-3 mt-3 border-t">
+                    Created with EngagePerfect • https://engageperfect.com
+                  </div>
                 </div>
               )}
             </div>
-          </div>
-        )}
-        
-        <div className={`${previewUrl ? 'md:w-2/3' : 'w-full'}`}>
-          <div className="flex justify-between items-center mb-6">
-            <h2 className="text-xl font-semibold">Generated Captions</h2>
-            <Button 
-              variant="outline" 
-              size="sm"
-              onClick={handleRegenerateClick}
-            >
-              Regenerate
-            </Button>
-          </div>
-          
-          <Tabs defaultValue="0" className="w-full" onValueChange={(value) => setSelectedCaption(parseInt(value))}>
-            <TabsList className="grid grid-cols-3 mb-6">
-              <TabsTrigger value="0">Caption 1</TabsTrigger>
-              <TabsTrigger value="1">Caption 2</TabsTrigger>
-              <TabsTrigger value="2">Caption 3</TabsTrigger>
-            </TabsList>
             
-            {captions.map((caption, index) => (
-              <TabsContent key={index} value={index.toString()} className="space-y-4">
-                <Card>
-                  <CardHeader>
-                    <CardTitle>{caption.title}</CardTitle>
-                    <CardDescription>
-                      Platform: {selectedPlatform} • Tone: {selectedTone}
-                    </CardDescription>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="space-y-4">
-                      <div>
-                        <h4 className="text-sm font-medium mb-1">Caption</h4>
-                        <p className="text-gray-700 whitespace-pre-line">{caption.caption}</p>
-                      </div>
-                      
-                      <div>
-                        <h4 className="text-sm font-medium mb-1">Call-to-Action</h4>
-                        <p className="text-gray-700">{caption.cta}</p>
-                      </div>
-                      
-                      <div>
-                        <h4 className="text-sm font-medium mb-1">Hashtags</h4>
-                        <div className="flex flex-wrap gap-2">
-                          {caption.hashtags.map((hashtag, idx) => (
-                            <span key={idx} className="bg-gray-100 px-2 py-1 rounded text-sm">
-                              #{hashtag}
-                            </span>
-                          ))}
-                        </div>
-                      </div>
-                    </div>
-                  </CardContent>
-                  <CardFooter className="flex justify-between">
-                    <Button 
-                      variant="outline" 
-                      size="sm"
-                      onClick={() => {
-                        const text = `${caption.caption}\n\n${caption.cta}\n\n${caption.hashtags.map(h => `#${h}`).join(' ')}`;
-                        navigator.clipboard.writeText(text);
-                        toast.success("Caption copied to clipboard!");
-                      }}
-                    >
-                      Copy Caption
-                    </Button>
-                    <Button 
-                      size="sm"
-                      onClick={() => {
-                        toast.success(`Caption saved for ${selectedPlatform}!`);
-                      }}
-                    >
-                      Use This Caption
-                    </Button>
-                  </CardFooter>
-                </Card>
-              </TabsContent>
-            ))}
-          </Tabs>
+            <div className="space-y-3">
+              <h3 className="font-medium">Share to Social Media</h3>
+              <Button
+                className="w-full bg-purple-600 hover:bg-purple-700"
+                onClick={handleShareToSocial}
+              >
+                <Share className="h-4 w-4 mr-2" />
+                Share via Browser (WhatsApp, Telegram, etc.)
+              </Button>
+              
+              <div className="text-sm text-gray-500">
+                Or share directly to:
+              </div>
+              
+              <div className="grid grid-cols-3 gap-2">
+                <Button variant="outline" size="sm" className="w-full">
+                  {selectedPlatform || "Instagram"}
+                </Button>
+                <Button variant="outline" size="sm" className="w-full">
+                  Facebook
+                </Button>
+                <Button variant="outline" size="sm" className="w-full">
+                  Twitter
+                </Button>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
     </div>

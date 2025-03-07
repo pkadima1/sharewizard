@@ -163,7 +163,7 @@ export const getDaysRemainingInPlan = (endDate: any): number => {
 export const getSuggestedUpgrade = (currentPlan: string): string => {
   switch (currentPlan) {
     case 'free':
-      return 'Start your 5-day free trial to get 5 more requests.';
+      return 'Start your 5-day free trial with a selected plan to get 5 more requests.';
     case 'trial':
       return 'Your trial will end soon. Upgrade to Basic or Premium to continue.';
     case 'basic':
@@ -211,8 +211,9 @@ export const addFlexRequests = async (userId: string, additionalRequests: number
 
 // New functions to support the pricing page
 
-export const activateTrial = async (userId: string): Promise<boolean> => {
+export const activateTrial = async (userId: string, planSelected: 'basic' | 'premium' = 'basic'): Promise<boolean> => {
   try {
+    // Instead of directly activating the trial, we'll redirect to Stripe checkout with trial period
     const userRef = doc(db, 'users', userId);
     const userDoc = await getDoc(userRef);
     
@@ -229,22 +230,24 @@ export const activateTrial = async (userId: string): Promise<boolean> => {
       return false;
     }
     
-    // Calculate trial end date (5 days from now)
+    // Temporarily mark as trial with 5 requests, but will be handled properly by Stripe
     const trialEndDate = new Date();
     trialEndDate.setDate(trialEndDate.getDate() + 5); // 5-day trial
     
-    console.log("Activating trial for user:", userId);
+    console.log("Marking user for trial:", userId);
     console.log("Trial will end on:", trialEndDate);
+    console.log("Selected plan for trial:", planSelected);
     
     await updateDoc(userRef, {
       plan_type: 'trial',
       requests_limit: DEFAULT_REQUEST_LIMIT.trial,
       trial_end_date: trialEndDate,
+      selected_plan: planSelected, // Track which plan they selected for the trial
       requests_used: 0, // Reset usage counter for trial
       has_used_trial: true // Mark that they've used their trial
     });
     
-    console.log("Trial activated successfully");
+    console.log("Trial marked successfully, should redirect to Stripe");
     return true;
   } catch (error: any) {
     console.error("Error activating trial:", error);
@@ -342,3 +345,6 @@ export const getStripePriceId = (planType: string, cycle: 'monthly' | 'yearly'):
       return '';
   }
 };
+
+// Customer portal URL redirection
+export const STRIPE_CUSTOMER_PORTAL_URL = 'https://billing.stripe.com/p/login/test_7sI01W9bs7V07sYdQQ';

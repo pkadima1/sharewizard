@@ -2,6 +2,7 @@
 import { doc, collection, addDoc, onSnapshot } from 'firebase/firestore';
 import { getFunctions, httpsCallable } from 'firebase/functions';
 import { db, auth } from './firebase';
+import { STRIPE_CUSTOMER_PORTAL_URL } from './subscriptionUtils';
 
 /**
  * Creates a checkout session for a subscription
@@ -86,17 +87,8 @@ export const createFlexCheckout = async (userId: string, priceId: string, quanti
  */
 export const openCustomerPortal = async (userId: string) => {
   try {
-    const functions = getFunctions();
-    const createPortalLink = httpsCallable(
-      functions, 
-      'ext-firestore-stripe-payments-createPortalLink'
-    );
-    
-    const { data } = await createPortalLink({
-      returnUrl: window.location.origin,
-    }) as { data: { url: string } };
-    
-    return data.url;
+    // Instead of using the Firebase function, use the direct Stripe Customer Portal URL
+    return STRIPE_CUSTOMER_PORTAL_URL;
   } catch (error: any) {
     console.error("Error opening customer portal:", error);
     throw new Error(`Failed to open customer portal: ${error.message}`);

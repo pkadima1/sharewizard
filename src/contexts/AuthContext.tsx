@@ -1,4 +1,3 @@
-
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { 
   User, 
@@ -44,7 +43,7 @@ interface AuthContextType {
     message: string;
     usagePercentage: number;
   }>;
-  activateFreeTrial: () => Promise<boolean>;
+  activateFreeTrial: (selectedPlan: 'basic' | 'premium') => Promise<boolean>;
   subscription: any | null;
 }
 
@@ -184,7 +183,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
-  const activateFreeTrial = async (): Promise<boolean> => {
+  const activateFreeTrial = async (selectedPlan: 'basic' | 'premium'): Promise<boolean> => {
     if (!currentUser) {
       toast({
         title: "Error",
@@ -195,12 +194,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
     
     try {
-      const success = await activateTrial(currentUser.uid);
+      const success = await activateTrial(currentUser.uid, selectedPlan);
       
       if (success) {
         toast({
-          title: "Trial Activated",
-          description: "Your 5-day free trial has been activated. You now have 5 additional requests.",
+          title: "Trial Setup",
+          description: "Your trial is being set up. You'll need to enter payment details to continue.",
         });
         
         // Refresh user profile to show updated limits
