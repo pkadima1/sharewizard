@@ -25,7 +25,7 @@ const ProfileCard: React.FC<ProfileCardProps> = ({
           </div>
           
           <div className="mt-4 sm:mt-0 sm:ml-6">
-            <h1 className="text-2xl font-bold text-white sm:text-3xl">{user.fullName}</h1>
+            <h1 className="text-2xl sm:text-3xl font-bold text-foreground">{user.fullName}</h1>
             <div className="mt-1 flex items-center space-x-1.5 text-muted-foreground">
               <Mail size={16} />
               <span>{user.email}</span>
