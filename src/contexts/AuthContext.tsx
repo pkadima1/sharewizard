@@ -1,4 +1,3 @@
-
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { 
   User, 
@@ -30,9 +29,9 @@ import { DEFAULT_REQUEST_LIMIT } from '@/lib/constants';
 import { 
   checkUserPlan, 
   markUserForTrial, 
-  createSubscriptionCheckout, 
   getStripePriceId 
 } from '@/lib/subscriptionUtils';
+import { createSubscriptionCheckout } from '@/lib/stripe';
 
 interface AuthContextType {
   currentUser: User | null;
@@ -189,7 +188,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
-  // Modified to handle the trial activation properly
   const activateFreeTrial = async (selectedPlan: 'basic' | 'premium'): Promise<boolean> => {
     if (!currentUser) {
       toast({
@@ -201,11 +199,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
     
     try {
-      // Only mark the user for trial
       const success = await markUserForTrial(currentUser.uid, selectedPlan);
       
       if (success) {
-        // Redirect to subscription checkout to collect payment details
         const priceId = getStripePriceId(selectedPlan, 'yearly');
         
         if (!priceId) {
@@ -338,9 +334,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           if (userDoc.exists()) {
             const userData = userDoc.data();
             
-            // Check if this is a new subscription and user has a pending trial
             if (userData.trial_pending) {
-              // Activate the trial now that payment details are confirmed
               const trialEndDate = new Date();
               trialEndDate.setDate(trialEndDate.getDate() + 5);
               
@@ -358,7 +352,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
                 description: "Your 5-day free trial has been activated.",
               });
             } else {
-              // Regular subscription update
               const planType = subscriptionData.status === 'trialing' ? 'trial' : 
                             (subscriptionData.role === 'premium' ? 'premium' : 
                             (subscriptionData.role === 'basic' ? 'basic' : 'free'));
@@ -379,7 +372,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
               });
             }
             
-            // Refresh user profile
             const updatedUserDoc = await getDoc(userRef);
             if (updatedUserDoc.exists()) {
               setUserProfile({ id: updatedUserDoc.id, ...updatedUserDoc.data() });
