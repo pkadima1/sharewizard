@@ -1,4 +1,3 @@
-
 import { doc, getDoc, updateDoc, increment } from 'firebase/firestore';
 import { db } from './firebase';
 import { DEFAULT_REQUEST_LIMIT } from './constants';
@@ -209,11 +208,8 @@ export const addFlexRequests = async (userId: string, additionalRequests: number
   }
 };
 
-// New functions to support the pricing page
-
 export const activateTrial = async (userId: string, planSelected: 'basic' | 'premium' = 'basic'): Promise<boolean> => {
   try {
-    // Instead of directly activating the trial, we'll redirect to Stripe checkout with trial period
     const userRef = doc(db, 'users', userId);
     const userDoc = await getDoc(userRef);
     
@@ -224,15 +220,13 @@ export const activateTrial = async (userId: string, planSelected: 'basic' | 'pre
     
     const userData = userDoc.data();
     
-    // Only allow activation if user is on free plan and has not used trial before
     if (userData.plan_type !== 'free') {
       console.error("User is not on free plan, cannot activate trial");
       return false;
     }
     
-    // Temporarily mark as trial with 5 requests, but will be handled properly by Stripe
     const trialEndDate = new Date();
-    trialEndDate.setDate(trialEndDate.getDate() + 5); // 5-day trial
+    trialEndDate.setDate(trialEndDate.getDate() + 5);
     
     console.log("Marking user for trial:", userId);
     console.log("Trial will end on:", trialEndDate);
@@ -242,9 +236,9 @@ export const activateTrial = async (userId: string, planSelected: 'basic' | 'pre
       plan_type: 'trial',
       requests_limit: DEFAULT_REQUEST_LIMIT.trial,
       trial_end_date: trialEndDate,
-      selected_plan: planSelected, // Track which plan they selected for the trial
-      requests_used: 0, // Reset usage counter for trial
-      has_used_trial: true // Mark that they've used their trial
+      selected_plan: planSelected,
+      requests_used: 0,
+      has_used_trial: true
     });
     
     console.log("Trial marked successfully, should redirect to Stripe");
@@ -266,7 +260,6 @@ export const isPlanEligibleForTrial = async (userId: string): Promise<boolean> =
     
     const userData = userDoc.data();
     
-    // Only allow trial if user is on free plan and hasn't used trial before
     return userData.plan_type === 'free' && !userData.has_used_trial;
   } catch (error) {
     console.error("Error checking trial eligibility:", error);
@@ -346,5 +339,34 @@ export const getStripePriceId = (planType: string, cycle: 'monthly' | 'yearly'):
   }
 };
 
-// Customer portal URL redirection
+export const getStripeProductId = (planType: string): string => {
+  switch (planType) {
+    case 'basic':
+      return 'prod_Rt7TMmGREKGxH3';
+    case 'premium':
+      return 'prod_Rt7Ic7caEVdtQW';
+    case 'flexy':
+      return 'prod_Rt7dTWahmAAQ98';
+    default:
+      return '';
+  }
+};
+
+export const getStripePurchaseUrl = (planType: string, cycle: 'monthly' | 'yearly'): string => {
+  switch (planType) {
+    case 'basic':
+      return cycle === 'monthly' 
+        ? 'https://buy.stripe.com/test_4gw9EH9Lndy74y43cj'
+        : 'https://buy.stripe.com/test_4gw2cf9Ln8dN5C85kq';
+    case 'premium':
+      return cycle === 'monthly'
+        ? 'https://buy.stripe.com/test_fZeeZ12iV79J6Gc4gp'
+        : 'https://buy.stripe.com/test_6oEbMPe1D51B3u09AI';
+    case 'flexy':
+      return 'https://buy.stripe.com/test_3csg35cXzdy7d4AfZ8';
+    default:
+      return '';
+  }
+};
+
 export const STRIPE_CUSTOMER_PORTAL_URL = 'https://billing.stripe.com/p/login/test_7sI01W9bs7V07sYdQQ';

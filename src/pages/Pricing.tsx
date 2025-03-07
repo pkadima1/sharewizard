@@ -7,9 +7,11 @@ import { Button } from '@/components/ui/button';
 import { Check, Info } from 'lucide-react';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
 import { useToast } from '@/hooks/use-toast';
+import { getStripePriceId } from '@/lib/subscriptionUtils';
 
 const Pricing: React.FC = () => {
-  const [billingCycle, setBillingCycle] = useState<'monthly' | 'yearly'>('monthly');
+  // Set yearly as the default billing cycle
+  const [billingCycle, setBillingCycle] = useState<'monthly' | 'yearly'>('yearly');
   const { currentUser } = useAuth();
   const navigate = useNavigate();
   const { toast } = useToast();
@@ -66,7 +68,7 @@ const Pricing: React.FC = () => {
         <h1 className="text-3xl md:text-4xl font-bold mb-3">Simple, Transparent Pricing</h1>
         <p className="text-lg text-gray-600 dark:text-gray-300 mb-8">Choose the plan that's right for you</p>
         
-        {/* Billing cycle switch */}
+        {/* Billing cycle switch with yearly highlighted as default */}
         <div className="inline-flex items-center bg-gray-100 dark:bg-gray-800 rounded-full p-1 mb-8">
           <button
             className={`py-2 px-4 rounded-full ${
@@ -89,6 +91,11 @@ const Pricing: React.FC = () => {
             Yearly
           </button>
         </div>
+        {billingCycle === 'yearly' && (
+          <div className="text-sm text-green-500 font-medium mb-4">
+            Save significantly with our yearly plans!
+          </div>
+        )}
       </div>
 
       {/* Pricing Cards */}
@@ -144,9 +151,7 @@ const Pricing: React.FC = () => {
               variant="outline"
               onClick={() => handlePurchase(
                 'basic', 
-                billingCycle === 'monthly' 
-                  ? 'price_1QzLExGCd9fidigrcqSSEhSM' 
-                  : 'price_1QzLIQGCd9fidigre35Wc90Y'
+                getStripePriceId('basic', billingCycle)
               )}
               disabled={isLoading['basic']}
             >
@@ -227,9 +232,7 @@ const Pricing: React.FC = () => {
               className="w-full bg-purple-600 hover:bg-purple-700" 
               onClick={() => handlePurchase(
                 'premium', 
-                billingCycle === 'monthly' 
-                  ? 'price_1QzL3bGCd9fidigrpAXemWMN' 
-                  : 'price_1QzL6ZGCd9fidigrckYnMw6w'
+                getStripePriceId('premium', billingCycle)
               )}
               disabled={isLoading['premium']}
             >
@@ -276,7 +279,7 @@ const Pricing: React.FC = () => {
             <Button 
               className="w-full" 
               variant="default"
-              onClick={() => handlePurchase('flexy', 'price_1QzLOMGCd9fidigrt9Bk0C67')}
+              onClick={() => handlePurchase('flexy', getStripePriceId('flexy', 'monthly'))}
               disabled={isLoading['flexy']}
             >
               {isLoading['flexy'] ? 'Processing...' : 'Add Flex Pack'}

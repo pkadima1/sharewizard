@@ -85,9 +85,10 @@ export const createFlexCheckout = async (userId: string, priceId: string, quanti
 /**
  * Opens the Stripe Customer Portal
  */
-export const openCustomerPortal = async (userId: string) => {
+export const openCustomerPortal = async () => {
   try {
-    // Instead of using the Firebase function, use the direct Stripe Customer Portal URL
+    // Redirect to the Stripe Customer Portal URL
+    window.location.href = STRIPE_CUSTOMER_PORTAL_URL;
     return STRIPE_CUSTOMER_PORTAL_URL;
   } catch (error: any) {
     console.error("Error opening customer portal:", error);
