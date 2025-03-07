@@ -35,8 +35,8 @@ const ProfileCard: React.FC<ProfileCardProps> = ({ user, onEditProfile }) => {
           </div>
           
           <div className="mt-4 sm:mt-0 sm:ml-6">
-            <h1 className="text-2xl sm:text-3xl font-bold dark:text-white">{user.fullName}</h1>
-            <div className="mt-1 flex items-center space-x-1.5 text-muted-foreground dark:text-gray-300">
+            <h1 className="text-2xl sm:text-3xl font-bold text-foreground">{user.fullName}</h1>
+            <div className="mt-1 flex items-center space-x-1.5 text-muted-foreground">
               <Mail size={16} />
               <span>{user.email}</span>
             </div>
@@ -46,14 +46,14 @@ const ProfileCard: React.FC<ProfileCardProps> = ({ user, onEditProfile }) => {
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div className="space-y-3">
             <div>
-              <div className="text-sm text-muted-foreground dark:text-gray-400">Subscription Plan</div>
+              <div className="text-sm text-muted-foreground">Subscription Plan</div>
               <div className="flex items-center mt-1">
                 <span className={`status-badge ${getSubscriptionBadgeClass(user.subscriptionTier)}`}>
                   {user.subscriptionTier}
                 </span>
                 
                 {daysRemaining !== null && (
-                  <span className="ml-2 text-sm text-muted-foreground dark:text-gray-300">
+                  <span className="ml-2 text-sm text-muted-foreground">
                     ({daysRemaining} days remaining)
                   </span>
                 )}
@@ -63,8 +63,8 @@ const ProfileCard: React.FC<ProfileCardProps> = ({ user, onEditProfile }) => {
           
           <div className="space-y-3">
             <div>
-              <div className="text-sm text-muted-foreground dark:text-gray-400">Member Since</div>
-              <div className="flex items-center mt-1 text-muted-foreground dark:text-gray-300">
+              <div className="text-sm text-muted-foreground">Member Since</div>
+              <div className="flex items-center mt-1 text-muted-foreground">
                 <Calendar size={16} className="mr-1.5" />
                 <span>{formatDate(user.dateJoined)}</span>
               </div>

@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
@@ -59,16 +58,16 @@ const Pricing: React.FC = () => {
   return (
     <div className="container mx-auto px-4 py-12 md:py-20 fade-in">
       <div className="text-center mb-10">
-        <h1 className="text-3xl md:text-4xl font-bold mb-3 dark:text-white">Simple, Transparent Pricing</h1>
-        <p className="text-lg text-gray-600 dark:text-gray-300 mb-8 max-w-2xl mx-auto">Choose the plan that's right for you</p>
+        <h1 className="text-3xl md:text-4xl font-bold mb-3 text-foreground">Simple, Transparent Pricing</h1>
+        <p className="text-lg text-muted-foreground mb-8 max-w-2xl mx-auto">Choose the plan that's right for you</p>
         
         {/* Billing cycle switch with yearly highlighted as default */}
         <div className="inline-flex items-center bg-gray-100 dark:bg-gray-800 rounded-full p-1 mb-6">
           <button
             className={`py-2 px-4 rounded-full transition-colors duration-200 ${
               billingCycle === 'monthly' 
-                ? 'bg-blue-600 text-white' 
-                : 'text-gray-700 dark:text-gray-300'
+                ? 'bg-primary text-primary-foreground' 
+                : 'text-foreground/80'
             }`}
             onClick={() => setBillingCycle('monthly')}
           >
@@ -77,8 +76,8 @@ const Pricing: React.FC = () => {
           <button
             className={`py-2 px-4 rounded-full transition-colors duration-200 ${
               billingCycle === 'yearly' 
-                ? 'bg-blue-600 text-white' 
-                : 'text-gray-700 dark:text-gray-300'
+                ? 'bg-primary text-primary-foreground' 
+                : 'text-foreground/80'
             }`}
             onClick={() => setBillingCycle('yearly')}
           >
@@ -86,7 +85,7 @@ const Pricing: React.FC = () => {
           </button>
         </div>
         {billingCycle === 'yearly' && (
-          <div className="text-sm text-green-500 font-medium mb-4">
+          <div className="text-sm text-green-500 dark:text-green-400 font-medium mb-4">
             Save significantly with our yearly plans!
           </div>
         )}
@@ -97,49 +96,49 @@ const Pricing: React.FC = () => {
         {/* Basic Plan */}
         <div className="pricing-card">
           <div className="flex-grow space-y-5">
-            <h3 className="text-xl font-bold mb-1 dark:text-white">Basic Plan</h3>
-            <p className="text-sm text-gray-500 dark:text-gray-400 mb-4">
+            <h3 className="text-xl font-bold mb-1 text-foreground">Basic Plan</h3>
+            <p className="text-sm text-muted-foreground mb-4">
               Perfect for casual users managing a single social media platform.
             </p>
             <div className="mb-6">
-              <span className="text-3xl font-bold dark:text-white">
+              <span className="text-3xl font-bold text-foreground">
                 {billingCycle === 'monthly' ? '£9.99' : '£59.99'}
               </span>
-              <span className="text-gray-500 dark:text-gray-400">
+              <span className="text-muted-foreground">
                 {billingCycle === 'monthly' ? '/month' : '/year'}
               </span>
               {billingCycle === 'yearly' && (
-                <div className="text-sm text-green-500 font-medium mt-1">
+                <div className="text-sm text-green-500 dark:text-green-400 font-medium mt-1">
                   Save £59.89/year (~50%)
                 </div>
               )}
             </div>
             <ul className="space-y-3 mb-6">
               <li className="flex items-start">
-                <Check className="w-5 h-5 text-green-500 mr-2 flex-shrink-0" />
-                <span className="text-sm dark:text-gray-200">5 free requests during trial</span>
+                <Check className="w-5 h-5 text-green-500 dark:text-green-400 mr-2 flex-shrink-0" />
+                <span className="text-sm text-foreground">5 free requests during trial</span>
               </li>
               <li className="flex items-start">
-                <Check className="w-5 h-5 text-green-500 mr-2 flex-shrink-0" />
-                <span className="text-sm dark:text-gray-200">
+                <Check className="w-5 h-5 text-green-500 dark:text-green-400 mr-2 flex-shrink-0" />
+                <span className="text-sm text-foreground">
                   {billingCycle === 'monthly' ? '75 requests/month' : '900 requests/year'}
                 </span>
               </li>
               <li className="flex items-start">
-                <Check className="w-5 h-5 text-green-500 mr-2 flex-shrink-0" />
-                <span className="text-sm dark:text-gray-200">Single platform support</span>
+                <Check className="w-5 h-5 text-green-500 dark:text-green-400 mr-2 flex-shrink-0" />
+                <span className="text-sm text-foreground">Single platform support</span>
               </li>
               <li className="flex items-start">
-                <Check className="w-5 h-5 text-green-500 mr-2 flex-shrink-0" />
-                <span className="text-sm dark:text-gray-200">Post ideas and captions (image only support)</span>
+                <Check className="w-5 h-5 text-green-500 dark:text-green-400 mr-2 flex-shrink-0" />
+                <span className="text-sm text-foreground">Post ideas and captions (image only support)</span>
               </li>
               <li className="flex items-start">
-                <Check className="w-5 h-5 text-green-500 mr-2 flex-shrink-0" />
-                <span className="text-sm dark:text-gray-200">Basic analytics</span>
+                <Check className="w-5 h-5 text-green-500 dark:text-green-400 mr-2 flex-shrink-0" />
+                <span className="text-sm text-foreground">Basic analytics</span>
               </li>
             </ul>
           </div>
-          <div className="pt-5 border-t border-gray-200 dark:border-gray-700 space-y-3">
+          <div className="pt-5 border-t border-border space-y-3">
             <Button 
               className="w-full" 
               variant="outline"
@@ -157,7 +156,7 @@ const Pricing: React.FC = () => {
             >
               Start Free Trial
             </Button>
-            <p className="text-xs text-center text-gray-500 dark:text-gray-400 mt-3">
+            <p className="text-xs text-center text-muted-foreground mt-3">
               Start your 5-day trial with 5 free requests. Payment details required. Cancel anytime during the trial to avoid charges.
             </p>
           </div>
@@ -166,64 +165,64 @@ const Pricing: React.FC = () => {
         {/* Premium Plan */}
         <div className="popular-card relative">
           <div className="absolute top-0 right-0 left-0">
-            <div className="bg-blue-600 text-white text-xs font-medium py-1 text-center rounded-t-lg">
+            <div className="bg-primary text-primary-foreground text-xs font-medium py-1 text-center rounded-t-lg">
               Most Popular
             </div>
           </div>
           <div className="flex-grow space-y-5 pt-6">
-            <h3 className="text-xl font-bold mb-1 dark:text-white">Premium Plan</h3>
-            <p className="text-sm text-gray-500 dark:text-gray-400 mb-4">
+            <h3 className="text-xl font-bold mb-1 text-foreground">Premium Plan</h3>
+            <p className="text-sm text-muted-foreground mb-4">
               Ideal for small businesses managing multiple platforms.
             </p>
             <div className="mb-6">
-              <span className="text-3xl font-bold dark:text-white">
+              <span className="text-3xl font-bold text-foreground">
                 {billingCycle === 'monthly' ? '£59.99' : '£199.99'}
               </span>
-              <span className="text-gray-500 dark:text-gray-400">
+              <span className="text-muted-foreground">
                 {billingCycle === 'monthly' ? '/month' : '/year'}
               </span>
               {billingCycle === 'yearly' && (
-                <div className="text-sm text-green-500 font-medium mt-1">
+                <div className="text-sm text-green-500 dark:text-green-400 font-medium mt-1">
                   Save £519.89/year (~43%)
                 </div>
               )}
             </div>
             <ul className="space-y-3 mb-6">
               <li className="flex items-start">
-                <Check className="w-5 h-5 text-green-500 mr-2 flex-shrink-0" />
-                <span className="text-sm dark:text-gray-200">
+                <Check className="w-5 h-5 text-green-500 dark:text-green-400 mr-2 flex-shrink-0" />
+                <span className="text-sm text-foreground">
                   {billingCycle === 'monthly' ? '250 requests/month' : '3000 requests/year'}
                 </span>
               </li>
               <li className="flex items-start">
-                <Check className="w-5 h-5 text-green-500 mr-2 flex-shrink-0" />
-                <span className="text-sm dark:text-gray-200">Multi-platform support</span>
+                <Check className="w-5 h-5 text-green-500 dark:text-green-400 mr-2 flex-shrink-0" />
+                <span className="text-sm text-foreground">Multi-platform support</span>
               </li>
               <li className="flex items-start">
-                <Check className="w-5 h-5 text-green-500 mr-2 flex-shrink-0" />
-                <span className="text-sm dark:text-gray-200">Advanced Post ideas and captions</span>
+                <Check className="w-5 h-5 text-green-500 dark:text-green-400 mr-2 flex-shrink-0" />
+                <span className="text-sm text-foreground">Advanced Post ideas and captions</span>
               </li>
               <li className="flex items-start">
-                <Check className="w-5 h-5 text-green-500 mr-2 flex-shrink-0" />
-                <span className="text-sm dark:text-gray-200">Multi-media support (image/video)</span>
+                <Check className="w-5 h-5 text-green-500 dark:text-green-400 mr-2 flex-shrink-0" />
+                <span className="text-sm text-foreground">Multi-media support (image/video)</span>
               </li>
               <li className="flex items-start">
-                <Check className="w-5 h-5 text-green-500 mr-2 flex-shrink-0" />
-                <span className="text-sm dark:text-gray-200">Priority support</span>
+                <Check className="w-5 h-5 text-green-500 dark:text-green-400 mr-2 flex-shrink-0" />
+                <span className="text-sm text-foreground">Priority support</span>
               </li>
               <li className="flex items-start">
-                <Check className="w-5 h-5 text-green-500 mr-2 flex-shrink-0" />
-                <span className="text-sm dark:text-gray-200">Advanced analytics</span>
+                <Check className="w-5 h-5 text-green-500 dark:text-green-400 mr-2 flex-shrink-0" />
+                <span className="text-sm text-foreground">Advanced analytics</span>
               </li>
               <li className="flex items-start">
-                <Check className="w-5 h-5 text-green-500 mr-2 flex-shrink-0" />
-                <span className="text-sm dark:text-gray-200">Custom templates</span>
+                <Check className="w-5 h-5 text-green-500 dark:text-green-400 mr-2 flex-shrink-0" />
+                <span className="text-sm text-foreground">Custom templates</span>
               </li>
             </ul>
           </div>
-          <div className="pt-5 border-t border-gray-200 dark:border-gray-700">
+          <div className="pt-5 border-t border-border">
             <Button 
-              className="w-full bg-blue-600 hover:bg-blue-700" 
+              className="w-full bg-primary hover:bg-primary/90" 
               onClick={() => handlePurchase(
                 'premium', 
                 getStripePriceId('premium', billingCycle)
@@ -232,7 +231,7 @@ const Pricing: React.FC = () => {
             >
               {isLoading['premium'] ? 'Processing...' : 'Choose Premium'}
             </Button>
-            <p className="text-xs text-center text-gray-500 dark:text-gray-400 mt-3">
+            <p className="text-xs text-center text-muted-foreground mt-3">
               Includes 5-day free trial. Payment details required, cancel anytime.
             </p>
           </div>
@@ -241,38 +240,38 @@ const Pricing: React.FC = () => {
         {/* Flex Add-On */}
         <div className="pricing-card">
           <div className="flex-grow space-y-5">
-            <h3 className="text-xl font-bold mb-1 dark:text-white">Flex Add-On</h3>
-            <p className="text-sm text-gray-500 dark:text-gray-400 mb-4">
+            <h3 className="text-xl font-bold mb-1 text-foreground">Flex Add-On</h3>
+            <p className="text-sm text-muted-foreground mb-4">
               Pay as you go option for additional content generations.
             </p>
             <div className="mb-6">
-              <span className="text-3xl font-bold dark:text-white">£1.99</span>
-              <span className="text-gray-500 dark:text-gray-400"> per pack</span>
+              <span className="text-3xl font-bold text-foreground">£1.99</span>
+              <span className="text-muted-foreground"> per pack</span>
             </div>
             <ul className="space-y-3 mb-6">
               <li className="flex items-start">
-                <Check className="w-5 h-5 text-green-500 mr-2 flex-shrink-0" />
-                <span className="text-sm dark:text-gray-200">No monthly commitment</span>
+                <Check className="w-5 h-5 text-green-500 dark:text-green-400 mr-2 flex-shrink-0" />
+                <span className="text-sm text-foreground">No monthly commitment</span>
               </li>
               <li className="flex items-start">
-                <Check className="w-5 h-5 text-green-500 mr-2 flex-shrink-0" />
-                <span className="text-sm dark:text-gray-200">Works with Basic or Premium plan</span>
+                <Check className="w-5 h-5 text-green-500 dark:text-green-400 mr-2 flex-shrink-0" />
+                <span className="text-sm text-foreground">Works with Basic or Premium plan</span>
               </li>
               <li className="flex items-start">
-                <Check className="w-5 h-5 text-green-500 mr-2 flex-shrink-0" />
-                <span className="text-sm dark:text-gray-200">Same features as your base plan</span>
+                <Check className="w-5 h-5 text-green-500 dark:text-green-400 mr-2 flex-shrink-0" />
+                <span className="text-sm text-foreground">Same features as your base plan</span>
               </li>
               <li className="flex items-start">
-                <Check className="w-5 h-5 text-green-500 mr-2 flex-shrink-0" />
-                <span className="text-sm dark:text-gray-200">Usage analytics included</span>
+                <Check className="w-5 h-5 text-green-500 dark:text-green-400 mr-2 flex-shrink-0" />
+                <span className="text-sm text-foreground">Usage analytics included</span>
               </li>
               <li className="flex items-start">
-                <Check className="w-5 h-5 text-green-500 mr-2 flex-shrink-0" />
-                <span className="text-sm dark:text-gray-200">20 additional requests per pack</span>
+                <Check className="w-5 h-5 text-green-500 dark:text-green-400 mr-2 flex-shrink-0" />
+                <span className="text-sm text-foreground">20 additional requests per pack</span>
               </li>
             </ul>
           </div>
-          <div className="pt-5 border-t border-gray-200 dark:border-gray-700">
+          <div className="pt-5 border-t border-border">
             <Button 
               className="w-full" 
               variant="default"
@@ -281,7 +280,7 @@ const Pricing: React.FC = () => {
             >
               {isLoading['flexy'] ? 'Processing...' : 'Add Flex Pack'}
             </Button>
-            <p className="text-xs text-center text-gray-500 dark:text-gray-400 mt-3">
+            <p className="text-xs text-center text-muted-foreground mt-3">
               One-time purchase, no subscription required.
             </p>
           </div>
@@ -290,40 +289,40 @@ const Pricing: React.FC = () => {
 
       {/* FAQ Section */}
       <div className="max-w-3xl mx-auto">
-        <h2 className="text-2xl font-bold mb-6 text-center dark:text-white">Frequently Asked Questions</h2>
+        <h2 className="text-2xl font-bold mb-6 text-center text-foreground">Frequently Asked Questions</h2>
         
         <Accordion type="single" collapsible className="w-full">
           <AccordionItem value="item-1">
-            <AccordionTrigger className="text-left dark:text-white">What's included in the free trial?</AccordionTrigger>
-            <AccordionContent className="dark:text-gray-300">
+            <AccordionTrigger className="text-left text-foreground">What's included in the free trial?</AccordionTrigger>
+            <AccordionContent className="text-muted-foreground">
               All plans come with a 5-day free trial that includes 5 free requests. You can test all features available in your chosen plan during this period. Credit card details are required to start a trial.
             </AccordionContent>
           </AccordionItem>
           
           <AccordionItem value="item-2">
-            <AccordionTrigger className="text-left dark:text-white">Can I change plans later?</AccordionTrigger>
-            <AccordionContent className="dark:text-gray-300">
+            <AccordionTrigger className="text-left text-foreground">Can I change plans later?</AccordionTrigger>
+            <AccordionContent className="text-muted-foreground">
               Yes, you can upgrade or downgrade your plan at any time. Changes will be reflected in your next billing cycle.
             </AccordionContent>
           </AccordionItem>
           
           <AccordionItem value="item-3">
-            <AccordionTrigger className="text-left dark:text-white">How does the Flex Add-On work?</AccordionTrigger>
-            <AccordionContent className="dark:text-gray-300">
+            <AccordionTrigger className="text-left text-foreground">How does the Flex Add-On work?</AccordionTrigger>
+            <AccordionContent className="text-muted-foreground">
               The Flex Add-On allows you to purchase additional requests when you need them. Each purchase gives you 20 extra requests that never expire.
             </AccordionContent>
           </AccordionItem>
           
           <AccordionItem value="item-4">
-            <AccordionTrigger className="text-left dark:text-white">How is billing handled?</AccordionTrigger>
-            <AccordionContent className="dark:text-gray-300">
+            <AccordionTrigger className="text-left text-foreground">How is billing handled?</AccordionTrigger>
+            <AccordionContent className="text-muted-foreground">
               For monthly and yearly plans, you'll be billed automatically at the start of each billing cycle. You can cancel anytime before your next billing date.
             </AccordionContent>
           </AccordionItem>
           
           <AccordionItem value="item-5">
-            <AccordionTrigger className="text-left dark:text-white">Do you offer refunds?</AccordionTrigger>
-            <AccordionContent className="dark:text-gray-300">
+            <AccordionTrigger className="text-left text-foreground">Do you offer refunds?</AccordionTrigger>
+            <AccordionContent className="text-muted-foreground">
               We offer a 14-day money-back guarantee if you're not satisfied with your subscription. Contact our support team to process your refund.
             </AccordionContent>
           </AccordionItem>
@@ -332,12 +331,12 @@ const Pricing: React.FC = () => {
 
       {/* Call to action */}
       <div className="text-center mt-16">
-        <h2 className="text-2xl font-bold mb-4 dark:text-white">Ready to get started?</h2>
-        <p className="text-gray-600 dark:text-gray-300 mb-6 max-w-2xl mx-auto">
+        <h2 className="text-2xl font-bold mb-4 text-foreground">Ready to get started?</h2>
+        <p className="text-muted-foreground mb-6 max-w-2xl mx-auto">
           Join thousands of content creators and businesses who use EngagePerfect AI to create engaging content that resonates with their audience.
         </p>
         <Button 
-          className="bg-blue-600 hover:bg-blue-700 text-white px-8 py-6 rounded-lg text-lg"
+          className="bg-primary hover:bg-primary/90 text-primary-foreground px-8 py-6 rounded-lg text-lg"
           onClick={freeTrial}
         >
           Start Your Free Trial Today

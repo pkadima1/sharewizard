@@ -57,7 +57,7 @@
 
 /* Improved focus rings for accessibility */
 *:focus-visible {
-  outline: 2px solid var(--primary);
+  outline: 2px solid hsl(var(--primary));
   outline-offset: 2px;
 }
 
