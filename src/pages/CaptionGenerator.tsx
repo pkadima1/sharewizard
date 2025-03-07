@@ -18,6 +18,8 @@ const CaptionGenerator: React.FC = () => {
   const [selectedPlatform, setSelectedPlatform] = useState<string>('');
   const [selectedGoal, setSelectedGoal] = useState<string>('');
   const [selectedTone, setSelectedTone] = useState<string>('');
+  const [isTextOnly, setIsTextOnly] = useState<boolean>(false);
+  const [captionOverlayMode, setCaptionOverlayMode] = useState<'overlay' | 'below'>('below');
 
   // Clean up URL objects when component unmounts or when URL changes
   useEffect(() => {
@@ -34,7 +36,7 @@ const CaptionGenerator: React.FC = () => {
     {
       title: "Upload Media",
       description: "Upload an image or video to generate captions",
-      isCompleted: !!selectedMedia
+      isCompleted: !!selectedMedia || isTextOnly
     },
     {
       title: "Select Niche",
@@ -71,6 +73,7 @@ const CaptionGenerator: React.FC = () => {
     }
     
     setSelectedMedia(file);
+    setIsTextOnly(false);
     
     // Clean up previous URL if it exists
     if (previewUrl) {
@@ -80,6 +83,13 @@ const CaptionGenerator: React.FC = () => {
     // Create object URL for preview
     const objectUrl = URL.createObjectURL(file);
     setPreviewUrl(objectUrl);
+  };
+
+  const handleTextOnlySelect = () => {
+    setIsTextOnly(true);
+    setSelectedMedia(null);
+    setPreviewUrl(null);
+    toast.success("Text-only caption mode enabled");
   };
 
   const handleNicheChange = (niche: string) => {
@@ -103,9 +113,13 @@ const CaptionGenerator: React.FC = () => {
     setCurrentStep(prev => prev + 1);
   };
 
+  const handleCaptionOverlayModeChange = (mode: 'overlay' | 'below') => {
+    setCaptionOverlayMode(mode);
+  };
+
   const handleNext = () => {
-    if (currentStep === 0 && !selectedMedia) {
-      toast.error("Please upload a media file to continue");
+    if (currentStep === 0 && !selectedMedia && !isTextOnly) {
+      toast.error("Please upload a media file or select text-only mode to continue");
       return;
     }
 
@@ -159,7 +173,7 @@ const CaptionGenerator: React.FC = () => {
             onNext={handleNext}
             onPrev={handlePrev}
             isNextDisabled={
-              (currentStep === 0 && !selectedMedia) || 
+              (currentStep === 0 && !selectedMedia && !isTextOnly) || 
               (currentStep === 1 && !selectedNiche) ||
               (currentStep === 2 && !selectedPlatform) ||
               (currentStep === 3 && !selectedGoal) ||
@@ -173,6 +187,7 @@ const CaptionGenerator: React.FC = () => {
                 onMediaSelect={handleMediaSelect}
                 selectedMedia={selectedMedia}
                 previewUrl={previewUrl}
+                onTextOnlySelect={handleTextOnlySelect}
               />
             )}
             
@@ -216,6 +231,9 @@ const CaptionGenerator: React.FC = () => {
                 selectedTone={selectedTone}
                 isGenerating={isGenerating}
                 setIsGenerating={setIsGenerating}
+                isTextOnly={isTextOnly}
+                captionOverlayMode={captionOverlayMode}
+                onCaptionOverlayModeChange={handleCaptionOverlayModeChange}
               />
             )}
           </WizardLayout>

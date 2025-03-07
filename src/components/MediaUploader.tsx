@@ -4,7 +4,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
 import { 
   Upload, Camera, X, RotateCw, Crop, Type, RefreshCw, Check,
-  Sliders, FileEdit, RotateCcw, Image
+  Sliders, FileEdit, RotateCcw, Image, FileText
 } from 'lucide-react';
 import { toast } from "sonner";
 import { 
@@ -21,6 +21,7 @@ interface MediaUploaderProps {
   onMediaSelect: (file: File | null) => void;
   selectedMedia: File | null;
   previewUrl: string | null;
+  onTextOnlySelect: () => void;
 }
 
 interface ImageFilter {
@@ -32,7 +33,8 @@ interface ImageFilter {
 const MediaUploader: React.FC<MediaUploaderProps> = ({ 
   onMediaSelect, 
   selectedMedia, 
-  previewUrl 
+  previewUrl,
+  onTextOnlySelect
 }) => {
   const { currentUser } = useAuth();
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -315,6 +317,10 @@ const MediaUploader: React.FC<MediaUploaderProps> = ({
     // by drawing on canvas and creating a new File object
   };
 
+  const handleTextOnlyClick = () => {
+    onTextOnlySelect();
+  };
+
   // Determine if the selected file is a video
   const isVideo = selectedMedia?.type.startsWith('video/');
 
@@ -398,9 +404,12 @@ const MediaUploader: React.FC<MediaUploaderProps> = ({
             <span className="text-gray-500 dark:text-gray-400 text-sm">or</span>
             <button 
               className="block mx-auto text-primary text-sm hover:underline mt-1"
-              onClick={() => toast("Text-only captions will be implemented in the next phase!")}
+              onClick={handleTextOnlyClick}
             >
-              Create text-only caption
+              <span className="flex items-center justify-center gap-1">
+                <FileText className="h-4 w-4" />
+                Create text-only caption
+              </span>
             </button>
           </div>
           
