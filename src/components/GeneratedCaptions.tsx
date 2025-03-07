@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
@@ -6,7 +5,6 @@ import { generateCaptions, CaptionResponse, GeneratedCaption } from '@/services/
 import { useAuth } from '@/contexts/AuthContext';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
-import { CopyToClipboard, ShareToSocial, SaveAsFavorite } from '@/components/ui/actions';
 import { Skeleton } from "@/components/ui/skeleton";
 import { AlertCircle } from 'lucide-react';
 
@@ -45,7 +43,6 @@ const GeneratedCaptions: React.FC<GeneratedCaptionsProps> = ({
       try {
         setError(null);
         
-        // Check if user can make this request
         const canProceed = await incrementRequestUsage();
         
         if (!canProceed) {
@@ -54,7 +51,6 @@ const GeneratedCaptions: React.FC<GeneratedCaptionsProps> = ({
           return;
         }
         
-        // Generate captions
         const captionResponse = await generateCaptions(
           selectedPlatform,
           selectedTone,
