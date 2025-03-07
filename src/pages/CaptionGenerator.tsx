@@ -89,6 +89,10 @@ const CaptionGenerator: React.FC = () => {
     setIsTextOnly(true);
     setSelectedMedia(null);
     setPreviewUrl(null);
+    
+    // Auto-advance to next step
+    setCurrentStep(prev => prev + 1);
+    
     toast.success("Text-only caption mode enabled");
   };
 

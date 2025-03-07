@@ -141,8 +141,9 @@
     @apply bg-white dark:bg-gray-800 rounded-2xl shadow-subtle p-5 transition-transform duration-300 hover:shadow-elevated hover:-translate-y-1;
   }
   
+  /* Enhanced caption card styling to match reference image */
   .caption-card {
-    @apply bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-4 cursor-pointer transition-all duration-200;
+    @apply bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-4 md:p-5 cursor-pointer transition-all duration-200 relative;
   }
   
   .caption-card-selected {
@@ -177,9 +178,9 @@
     @apply bg-gray-100 dark:bg-gray-800 rounded-lg overflow-hidden relative;
   }
   
-  /* Added for interactive caption card design */
+  /* Enhanced interactive caption card design */
   .copy-button {
-    @apply opacity-0 group-hover:opacity-100 transition-opacity absolute right-3 top-3;
+    @apply opacity-0 group-hover:opacity-100 transition-opacity absolute right-3 top-3 z-10;
   }
   
   .caption-card-interactive {
@@ -188,6 +189,37 @@
   
   .caption-card-interactive.selected {
     @apply border-blue-500 bg-blue-50 dark:border-blue-500 dark:bg-blue-900/20;
+  }
+  
+  /* Enhanced for sharing preview */
+  .sharable-content {
+    @apply relative overflow-hidden;
+  }
+  
+  /* Improved caption text styling */
+  .caption-title {
+    @apply font-bold text-lg text-gray-900 dark:text-white mb-2;
+  }
+  
+  .caption-text {
+    @apply text-gray-700 dark:text-gray-200 text-base whitespace-pre-wrap break-words;
+  }
+  
+  .caption-hashtags {
+    @apply text-blue-500 dark:text-blue-400 text-sm mt-2;
+  }
+  
+  .caption-cta {
+    @apply text-gray-500 dark:text-gray-400 text-sm italic mt-2;
+  }
+  
+  /* Controls for caption overlay mode */
+  .overlay-controls {
+    @apply flex items-center space-x-2 my-3;
+  }
+  
+  .overlay-control-label {
+    @apply text-sm font-medium text-gray-700 dark:text-gray-300;
   }
 }
 
@@ -242,9 +274,9 @@ body {
   to { transform: translateY(0); opacity: 1; }
 }
 
-/* Media caption overlay styles */
+/* Enhanced media caption overlay styles */
 .caption-overlay {
-  @apply absolute bottom-0 left-0 right-0 bg-black bg-opacity-60 text-white p-3 
+  @apply absolute bottom-0 left-0 right-0 bg-black bg-opacity-70 text-white p-3 
   transform transition-transform duration-300;
 }
 
@@ -256,11 +288,69 @@ body {
   @apply translate-y-0;
 }
 
-/* Add this for better visibility in dark mode */
+/* Improved sharing controls */
+.sharing-controls {
+  @apply flex flex-wrap justify-center gap-3 mt-4;
+}
+
+.sharing-button {
+  @apply flex items-center justify-center gap-2 px-4 py-2 rounded-md text-white font-medium transition-all duration-200 
+  hover:shadow-md hover:-translate-y-0.5;
+}
+
+.download-button {
+  @apply bg-green-600 hover:bg-green-700;
+}
+
+.share-button {
+  @apply bg-blue-600 hover:bg-blue-700;
+}
+
+.copy-button-visible {
+  @apply bg-blue-500 hover:bg-blue-600 text-white p-1.5 rounded-full;
+}
+
+/* Add better visibility in dark mode */
 .dark .text-gray-700 {
   color: rgb(209, 213, 219);
 }
 
 .dark .text-gray-600 {
   color: rgb(156, 163, 175);
+}
+
+/* Preview content area */
+.preview-content {
+  @apply overflow-hidden rounded-lg;
+}
+
+/* Improved image and video preview styles */
+.media-preview-container {
+  @apply relative w-full overflow-hidden;
+}
+
+.media-preview-image {
+  @apply w-full object-contain max-h-[500px];
+}
+
+.media-preview-video {
+  @apply w-full object-contain max-h-[500px];
+}
+
+/* Caption overlay positioning */
+.preview-with-overlay {
+  @apply relative overflow-hidden;
+}
+
+.overlay-caption {
+  @apply absolute bottom-0 left-0 right-0 p-4 bg-black bg-opacity-60 text-white;
+}
+
+/* Social share section styling */
+.social-share-section {
+  @apply mt-6 p-4 bg-gray-50 dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700;
+}
+
+.social-share-title {
+  @apply text-lg font-semibold text-gray-900 dark:text-white mb-3;
 }
