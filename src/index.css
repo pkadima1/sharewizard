@@ -117,7 +117,7 @@
   
   /* Dark mode pricing card styles */
   .dark .pricing-card {
-    @apply from-gray-800/95 to-gray-900/98 bg-gradient-to-br;
+    @apply from-gray-800/95 to-gray-900/95 bg-gradient-to-br;
     @apply border-white/10 backdrop-blur-xl;
     @apply shadow-[0_15px_30px_-10px_rgba(0,0,0,0.5)];
   }
