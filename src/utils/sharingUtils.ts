@@ -54,10 +54,10 @@ export const createCaptionedVideo = async (
         // Create a loading toast for longer videos
         if (originalVideo.duration > 5) {
           // Fix: Convert number to string for toastId to match the expected type
-          toastId = toast.success('Processing video with audio...', {
+          toastId = `${toast.success('Processing video with audio...', {
             id: 'video-processing',
             duration: 0
-          });
+          })}`;
         }
         
         // Create media stream from canvas
