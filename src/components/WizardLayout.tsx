@@ -30,9 +30,9 @@ export const WizardLayout: React.FC<WizardLayoutProps> = ({
   hideNextButton = false
 }: WizardLayoutProps) => {
   return (
-    <div className="flex flex-col h-full">
+    <div className="flex flex-col h-full wizard-card">
       {/* Progress Steps */}
-      <div className="px-6 sm:px-8 py-6 border-b border-gray-200 dark:border-gray-700">
+      <div className="px-4 sm:px-6 md:px-8 py-6 border-b border-gray-200 dark:border-gray-700">
         <div className="hidden md:flex items-center justify-between mb-2">
           {steps.map((step, index) => (
             <div
@@ -46,7 +46,7 @@ export const WizardLayout: React.FC<WizardLayoutProps> = ({
                   className={`w-10 h-10 rounded-full flex items-center justify-center border-2 transition-all duration-200
                     ${
                       index < currentStep
-                        ? 'bg-primary border-primary text-white'
+                        ? 'bg-primary border-primary text-white dark:text-gray-900'
                         : index === currentStep
                         ? 'border-primary text-primary dark:text-primary/80 dark:border-primary/80'
                         : 'border-gray-300 text-gray-500 dark:border-gray-600 dark:text-gray-400'
@@ -68,10 +68,11 @@ export const WizardLayout: React.FC<WizardLayoutProps> = ({
                 </span>
                 
                 {/* Tooltip on hover */}
-                <div className="absolute -bottom-14 scale-0 group-hover:scale-100 transition-all duration-200 origin-top">
-                  <div className="bg-gray-800 dark:bg-gray-700 text-white text-xs rounded py-1 px-2 whitespace-nowrap">
+                <div className="absolute -bottom-16 scale-0 group-hover:scale-100 transition-all duration-200 origin-top z-10">
+                  <div className="bg-gray-800 dark:bg-gray-700 text-white text-xs rounded py-1 px-2 whitespace-nowrap shadow-md">
                     {step.description}
                   </div>
+                  <div className="w-2 h-2 bg-gray-800 dark:bg-gray-700 transform rotate-45 mx-auto -mt-1"></div>
                 </div>
               </div>
               
@@ -80,7 +81,7 @@ export const WizardLayout: React.FC<WizardLayoutProps> = ({
                   className={`flex-1 h-0.5 mx-4 transition-colors duration-200 ${
                     index < currentStep
                       ? 'bg-primary dark:bg-primary/80'
-                      : 'bg-gray-300 dark:bg-gray-600'
+                      : 'bg-gray-300 dark:bg-gray-700'
                   }`}
                 />
               )}
@@ -104,16 +105,20 @@ export const WizardLayout: React.FC<WizardLayoutProps> = ({
               style={{ width: `${((currentStep + 1) / steps.length) * 100}%` }}
             ></div>
           </div>
+          {/* Mobile step description */}
+          <div className="mt-2 text-xs text-center text-gray-500 dark:text-gray-400">
+            {steps[currentStep].description}
+          </div>
         </div>
       </div>
 
       {/* Content */}
-      <div className="flex-1 overflow-auto">
+      <div className="flex-1 overflow-auto p-4 sm:p-6 bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100">
         {children}
       </div>
 
       {/* Navigation Buttons */}
-      <div className="px-6 sm:px-8 py-5 border-t border-gray-200 dark:border-gray-700 flex justify-between">
+      <div className="px-4 sm:px-6 md:px-8 py-5 border-t border-gray-200 dark:border-gray-700 flex justify-between">
         <button
           onClick={onPrev}
           disabled={currentStep === 0 || isGenerating}
