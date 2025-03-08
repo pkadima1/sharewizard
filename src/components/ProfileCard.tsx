@@ -40,7 +40,7 @@ const ProfileCard: React.FC<ProfileCardProps> = ({ user, onEditProfile }) => {
           <div className="relative w-24 h-24 sm:w-32 sm:h-32 rounded-full border-4 border-background shadow-lg overflow-hidden">
             <img 
               src={user.profilePictureUrl} 
-              alt={user.fullName || "User"} 
+              alt={user.fullName} 
               className="w-full h-full object-cover"
               loading="lazy"
             />

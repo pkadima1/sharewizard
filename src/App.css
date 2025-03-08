@@ -54,12 +54,6 @@
   background: linear-gradient(to bottom, #1A1F2C 0%, #221F26 100%);
 }
 
-/* Fix for main container background - respect theme */
-.main-container {
-  background-color: var(--background) !important;
-  color: var(--foreground);
-}
-
 /* Dark mode card and glassmorphism effects */
 .glass-card {
   background-color: rgba(var(--card)/0.8);
@@ -167,51 +161,4 @@
   .mobile-p {
     padding: 2rem;
   }
-}
-
-/* Caption preview enhancements */
-.caption-preview {
-  border-radius: 0.5rem;
-  overflow: hidden;
-}
-
-.caption-text-container {
-  padding: 1.25rem;
-  background-color: var(--card);
-  color: var(--card-foreground);
-  border-top: 1px solid var(--border);
-}
-
-.caption-title {
-  font-size: 1.25rem;
-  font-weight: 600;
-  margin-bottom: 0.75rem;
-}
-
-.caption-body {
-  margin-bottom: 1rem;
-  white-space: pre-line;
-}
-
-.caption-cta {
-  font-style: italic;
-  color: var(--muted-foreground);
-  margin-bottom: 0.75rem;
-}
-
-.caption-hashtags {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.5rem;
-  margin-top: 0.75rem;
-}
-
-.caption-overlay {
-  position: absolute;
-  bottom: 0;
-  left: 0;
-  right: 0;
-  background: linear-gradient(to top, rgba(0,0,0,0.8) 0%, rgba(0,0,0,0.7) 40%, rgba(0,0,0,0) 100%);
-  padding: 2rem 1rem 1rem;
-  color: white;
 }
