@@ -12,8 +12,9 @@ import html2canvas from 'html2canvas';
 import { Switch } from "@/components/ui/switch";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { sharePreview, downloadPreview, MediaType } from '@/utils/sharingUtils';
+import { sharePreview, downloadPreview } from '@/utils/sharingUtils';
 import { Badge } from "@/components/ui/badge";
+import { MediaType } from '@/types/mediaTypes';
 
 interface GeneratedCaptionsProps {
   selectedMedia: File | null;
