@@ -131,12 +131,12 @@ const CaptionGenerator: React.FC = () => {
       setCurrentStep(prev => prev - 1);
     }
   };
-  return <div className="min-h-screen flex flex-col bg-gray-50 dark:bg-gray-900">
-      <div className="px-4 bg-gradient-to-r from-blue-600 to-blue-800 dark:from-blue-800 dark:to-indigo-800 py-[100px]">
-        <h1 className="text-2xl md:text-3xl font-bold text-white text-center">
+  return <div className="min-h-screen flex flex-col bg-white dark:bg-black">
+     <div className="px-4 py-[100px]">
+        <h1 className="text-2xl md:text-3xl font-bold text-black dark:text-white text-center">
           Caption Generator
         </h1>
-        <p className="mt-2 text-blue-100 text-center max-w-2xl mx-auto">
+       <p className="mt-2 text-gray-700 dark:text-gray-300 text-center max-w-2xl mx-auto">
           Create engaging captions for your social media posts with AI assistance
         </p>
       </div>
