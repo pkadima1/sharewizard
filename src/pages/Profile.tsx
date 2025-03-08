@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { doc, getDoc, updateDoc } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
@@ -10,6 +11,23 @@ import RecentPosts from '@/components/RecentPosts';
 import EditProfileModal from '@/components/EditProfileModal';
 import { toast } from "@/hooks/use-toast";
 
+const defaultUserProfile: UserProfile = {
+  id: '',
+  fullName: '',
+  email: '',
+  profilePictureUrl: '/placeholder.svg',
+  subscriptionTier: 'free',
+  dateJoined: new Date(),
+  planExpiryDate: null,
+  stats: {
+    aiRequestsUsed: 0,
+    aiRequestsLimit: 5,
+    postsCreated: 0,
+    lastActive: new Date()
+  },
+  recentPosts: []
+};
+
 const Profile: React.FC = () => {
   const [user, setUser] = useState<UserProfile | null>(null);
   const [loading, setLoading] = useState(true);
@@ -18,54 +36,119 @@ const Profile: React.FC = () => {
 
   useEffect(() => {
     const fetchUserData = async () => {
+      if (!currentUser) {
+        setLoading(false);
+        return;
+      }
+      
       try {
         const userDoc = doc(db, 'users', currentUser.uid);
         const userSnapshot = await getDoc(userDoc);
         if (userSnapshot.exists()) {
-          setUser(userSnapshot.data() as UserProfile);
+          const userData = userSnapshot.data();
+          
+          // Create a properly formatted UserProfile object
+          const profileData: UserProfile = {
+            id: userSnapshot.id,
+            fullName: userData.displayName || currentUser.displayName || '',
+            email: userData.email || currentUser.email || '',
+            profilePictureUrl: userData.photoURL || currentUser.photoURL || '/placeholder.svg',
+            subscriptionTier: userData.plan_type || 'free',
+            dateJoined: userData.createdAt ? new Date(userData.createdAt.seconds * 1000) : new Date(),
+            planExpiryDate: userData.reset_date ? new Date(userData.reset_date.seconds * 1000) : null,
+            stats: {
+              aiRequestsUsed: userData.requests_used || 0,
+              aiRequestsLimit: userData.requests_limit || 5,
+              postsCreated: userData.posts_created || 0,
+              lastActive: userData.last_active ? new Date(userData.last_active.seconds * 1000) : new Date()
+            },
+            recentPosts: userData.recent_posts || []
+          };
+          
+          setUser(profileData);
           setLoading(false);
         } else {
-          setUser(null);
+          // Create default profile with user auth data
+          const defaultProfile = {
+            ...defaultUserProfile,
+            fullName: currentUser.displayName || '',
+            email: currentUser.email || '',
+            profilePictureUrl: currentUser.photoURL || '/placeholder.svg',
+          };
+          setUser(defaultProfile);
           setLoading(false);
           
           // Show error toast
           toast({
-            title: "Error",
-            description: "Failed to load profile data. Please try again.",
+            title: "Warning",
+            description: "Using default profile data. Some features may be limited.",
             variant: "destructive",
           });
         }
       } catch (error) {
         console.error('Error fetching user data:', error);
+        
+        // Create default profile with user auth data
+        const defaultProfile = {
+          ...defaultUserProfile,
+          fullName: currentUser.displayName || '',
+          email: currentUser.email || '',
+          profilePictureUrl: currentUser.photoURL || '/placeholder.svg',
+        };
+        setUser(defaultProfile);
         setLoading(false);
         
         // Show error toast
         toast({
           title: "Error",
-          description: "Failed to load profile data. Please try again.",
+          description: "Failed to load profile data. Using default profile.",
           variant: "destructive",
         });
       }
     };
     
     fetchUserData();
-  }, []);
+  }, [currentUser]);
 
-  const handleSaveProfile = (updates: Partial<UserProfile>) => {
-    if (!user) return;
+  const handleSaveProfile = async (updates: Partial<UserProfile>) => {
+    if (!user || !currentUser) return;
     
-    // In a real app, this would update Firebase
-    // For now, just update the local state
-    setUser({
-      ...user,
-      ...updates
-    });
-    
-    // Show success toast
-    toast({
-      title: "Profile Updated",
-      description: "Your profile has been updated successfully!",
-    });
+    try {
+      // Update Firestore document
+      const userRef = doc(db, 'users', currentUser.uid);
+      const updateData: any = {};
+      
+      if (updates.fullName) {
+        updateData.displayName = updates.fullName;
+      }
+      
+      if (updates.profilePictureUrl) {
+        updateData.photoURL = updates.profilePictureUrl;
+      }
+      
+      await updateDoc(userRef, updateData);
+      
+      // Update local state
+      setUser({
+        ...user,
+        ...updates
+      });
+      
+      // Show success toast
+      toast({
+        title: "Profile Updated",
+        description: "Your profile has been updated successfully!",
+      });
+    } catch (error) {
+      console.error('Error updating profile:', error);
+      
+      // Show error toast
+      toast({
+        title: "Error",
+        description: "Failed to update profile. Please try again.",
+        variant: "destructive",
+      });
+    }
   };
 
   if (loading) {

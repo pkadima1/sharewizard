@@ -1,4 +1,3 @@
-
 import { doc, getDoc, updateDoc, increment } from 'firebase/firestore';
 import { db } from './firebase';
 import { DEFAULT_REQUEST_LIMIT } from './constants';
@@ -209,14 +208,11 @@ export const addFlexRequests = async (userId: string, additionalRequests: number
   }
 };
 
-// Fix for sharing and downloading - these are helper functions to prevent DataCloneError
 export const prepareDataForSharing = (data: any): any => {
-  // Remove request objects and other non-serializable data
   if (typeof data !== 'object' || data === null) {
     return data;
   }
   
-  // Convert to a regular object if it's a File or Blob
   if (data instanceof File || data instanceof Blob) {
     return {
       type: data instanceof File ? 'file' : 'blob',
@@ -226,15 +222,12 @@ export const prepareDataForSharing = (data: any): any => {
     };
   }
   
-  // Handle arrays
   if (Array.isArray(data)) {
     return data.map(item => prepareDataForSharing(item));
   }
   
-  // Handle objects
   const result: Record<string, any> = {};
   for (const [key, value] of Object.entries(data)) {
-    // Skip functions, symbols, and non-serializable objects
     if (typeof value !== 'function' && typeof value !== 'symbol') {
       result[key] = prepareDataForSharing(value);
     }
@@ -243,22 +236,22 @@ export const prepareDataForSharing = (data: any): any => {
   return result;
 };
 
-// Safe sharing function to prevent DataCloneError
 export const safeShareContent = async (content: any, title: string = 'Check out this caption!'): Promise<boolean> => {
   try {
-    const shareData = prepareDataForSharing({
+    const cleanContent = typeof content === 'string' ? content : JSON.stringify(content);
+    
+    const shareData = {
       title: title,
-      text: typeof content === 'string' ? content : JSON.stringify(content),
+      text: cleanContent,
       url: window.location.href
-    });
+    };
     
     if (navigator.share) {
       await navigator.share(shareData);
       return true;
     } else {
-      // Fallback for browsers that don't support the Web Share API
       console.log('Web Share API not supported, copying to clipboard instead');
-      await navigator.clipboard.writeText(shareData.text);
+      await navigator.clipboard.writeText(cleanContent);
       return true;
     }
   } catch (error) {
@@ -267,7 +260,6 @@ export const safeShareContent = async (content: any, title: string = 'Check out 
   }
 };
 
-// Safe download function to prevent errors
 export const safeDownloadContent = (content: string, filename: string): boolean => {
   try {
     const blob = new Blob([content], { type: 'text/plain' });
@@ -286,8 +278,6 @@ export const safeDownloadContent = (content: string, filename: string): boolean 
   }
 };
 
-// The trial setup is now only marking the user for trial
-// The actual activation happens after the subscription is confirmed
 export const markUserForTrial = async (userId: string, planSelected: 'basic' | 'premium' = 'basic'): Promise<boolean> => {
   try {
     const userRef = doc(db, 'users', userId);
@@ -321,7 +311,6 @@ export const markUserForTrial = async (userId: string, planSelected: 'basic' | '
   }
 };
 
-// This function is called after subscription confirmation
 export const activateTrialAfterPayment = async (userId: string): Promise<boolean> => {
   try {
     const userRef = doc(db, 'users', userId);
