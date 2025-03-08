@@ -2,7 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import { doc, getDoc, updateDoc } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
-import { UserProfile } from '@/types';
+import { UserProfile, SubscriptionTier } from '@/types';
 import { useAuth } from '@/contexts/AuthContext';
 import Navbar from '@/components/Navbar';
 import ProfileCard from '@/components/ProfileCard';
@@ -16,14 +16,23 @@ const defaultUserProfile: UserProfile = {
   fullName: '',
   email: '',
   profilePictureUrl: '/placeholder.svg',
-  subscriptionTier: 'free',
+  subscriptionTier: 'Free',
   dateJoined: new Date(),
   planExpiryDate: null,
   stats: {
     aiRequestsUsed: 0,
     aiRequestsLimit: 5,
-    postsCreated: 0,
-    lastActive: new Date()
+    postsGenerated: 0,
+    postsDrafted: 0,
+    postsShared: {
+      total: 0,
+      byPlatform: {
+        twitter: 0,
+        linkedin: 0,
+        facebook: 0,
+        other: 0
+      }
+    }
   },
   recentPosts: []
 };
@@ -47,20 +56,35 @@ const Profile: React.FC = () => {
         if (userSnapshot.exists()) {
           const userData = userSnapshot.data();
           
+          // Map Firebase plan_type to SubscriptionTier type
+          let subscriptionTier: SubscriptionTier = 'Free';
+          if (userData.plan_type === 'basic') subscriptionTier = 'Lite';
+          else if (userData.plan_type === 'premium') subscriptionTier = 'Pro';
+          else if (userData.plan_type === 'flexy') subscriptionTier = 'Flex';
+          
           // Create a properly formatted UserProfile object
           const profileData: UserProfile = {
             id: userSnapshot.id,
             fullName: userData.displayName || currentUser.displayName || '',
             email: userData.email || currentUser.email || '',
             profilePictureUrl: userData.photoURL || currentUser.photoURL || '/placeholder.svg',
-            subscriptionTier: userData.plan_type || 'free',
+            subscriptionTier: subscriptionTier,
             dateJoined: userData.createdAt ? new Date(userData.createdAt.seconds * 1000) : new Date(),
             planExpiryDate: userData.reset_date ? new Date(userData.reset_date.seconds * 1000) : null,
             stats: {
               aiRequestsUsed: userData.requests_used || 0,
               aiRequestsLimit: userData.requests_limit || 5,
-              postsCreated: userData.posts_created || 0,
-              lastActive: userData.last_active ? new Date(userData.last_active.seconds * 1000) : new Date()
+              postsGenerated: userData.posts_created || 0,
+              postsDrafted: userData.posts_drafted || 0,
+              postsShared: {
+                total: userData.posts_shared || 0,
+                byPlatform: {
+                  twitter: userData.posts_shared_twitter || 0,
+                  linkedin: userData.posts_shared_linkedin || 0,
+                  facebook: userData.posts_shared_facebook || 0,
+                  other: userData.posts_shared_other || 0
+                }
+              }
             },
             recentPosts: userData.recent_posts || []
           };

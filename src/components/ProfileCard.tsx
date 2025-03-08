@@ -1,6 +1,6 @@
 
 import React from 'react';
-import { UserProfile } from '@/types';
+import { UserProfile, SubscriptionTier } from '@/types';
 import { formatDate, getDaysRemaining, getSubscriptionBadgeClass } from '@/lib/constants';
 import { Calendar, Mail } from 'lucide-react';
 import { cn } from '@/lib/utils';
@@ -12,6 +12,17 @@ interface ProfileCardProps {
 
 const ProfileCard: React.FC<ProfileCardProps> = ({ user, onEditProfile }) => {
   const daysRemaining = user.planExpiryDate ? getDaysRemaining(user.planExpiryDate) : null;
+  
+  // Helper function to map backend subscription types to display names
+  const getDisplayTier = (tier: SubscriptionTier): string => {
+    switch(tier) {
+      case 'Lite': return 'Lite';
+      case 'Pro': return 'Pro';
+      case 'Flex': return 'Flex';
+      case 'Free':
+      default: return 'Free';
+    }
+  };
   
   return (
     <div className="overflow-hidden rounded-xl shadow-md bg-gray-800/60 backdrop-blur-sm border border-gray-700/50">
@@ -51,9 +62,7 @@ const ProfileCard: React.FC<ProfileCardProps> = ({ user, onEditProfile }) => {
             <div className="text-sm text-gray-400">Subscription Plan</div>
             <div className="flex items-center mt-1">
               <span className={cn("inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium", getSubscriptionBadgeClass(user.subscriptionTier))}>
-                {user.subscriptionTier === 'basic' ? 'Lite' : 
-                 user.subscriptionTier === 'premium' ? 'Pro' : 
-                 user.subscriptionTier === 'trial' ? 'Trial' : 'Free'}
+                {getDisplayTier(user.subscriptionTier)}
               </span>
               
               {daysRemaining !== null && (
