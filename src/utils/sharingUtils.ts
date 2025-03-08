@@ -1,4 +1,3 @@
-
 import html2canvas from 'html2canvas';
 import { toast } from "sonner";
 import { getStorage, ref, uploadBytes, getDownloadURL } from 'firebase/storage';
@@ -571,7 +570,7 @@ export const sharePreview = async (
   }
 };
 
-// Download preview function with style option
+// Fix the downloadPreview function to properly handle different media types
 export const downloadPreview = async (
   previewRef: React.RefObject<HTMLDivElement>,
   mediaType: MediaType,
