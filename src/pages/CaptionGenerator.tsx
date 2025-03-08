@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { WizardLayout, WizardStep } from '@/components/WizardLayout';
 import MediaUploader from '@/components/MediaUploader';
@@ -7,8 +8,10 @@ import GoalSelector from '@/components/GoalSelector';
 import ToneSelector from '@/components/ToneSelector';
 import GeneratedCaptions from '@/components/GeneratedCaptions';
 import { toast } from "sonner";
+import { useTheme } from '@/contexts/ThemeContext';
 
 const CaptionGenerator: React.FC = () => {
+  const { resolvedTheme } = useTheme();
   const [currentStep, setCurrentStep] = useState(0);
   const [selectedMedia, setSelectedMedia] = useState<File | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
@@ -138,18 +141,22 @@ const CaptionGenerator: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen flex flex-col bg-gradient-to-b from-gray-900 via-[#1A1F2C] to-[#221F26] dark:from-gray-900 dark:via-[#1A1F2C] dark:to-[#221F26]">
-      <div className="px-4 py-[100px]">
-        <h1 className="text-2xl md:text-3xl font-bold text-white text-center">
+    <div className={`min-h-screen flex flex-col ${resolvedTheme === 'dark' ? 'bg-gradient-to-b from-gray-900 via-[#1A1F2C] to-[#221F26]' : 'bg-gradient-to-b from-gray-50 via-gray-100 to-white'}`}>
+      <div className={`px-4 py-[100px] ${resolvedTheme === 'dark' ? 'text-white' : 'text-gray-800'}`}>
+        <h1 className="text-2xl md:text-3xl font-bold text-center">
           Caption Generator
         </h1>
-        <p className="mt-2 text-gray-300 text-center max-w-2xl mx-auto">
+        <p className={`mt-2 text-center max-w-2xl mx-auto ${resolvedTheme === 'dark' ? 'text-gray-300' : 'text-gray-600'}`}>
           Create engaging captions for your social media posts with AI assistance
         </p>
       </div>
       
       <div className="container mx-auto flex-1 p-4 md:p-6 max-w-6xl">
-        <div className="bg-gray-800/60 backdrop-blur-md border border-gray-700/50 rounded-xl shadow-md overflow-hidden">
+        <div className={`backdrop-blur-md border rounded-xl shadow-md overflow-hidden ${
+          resolvedTheme === 'dark' 
+            ? 'bg-gray-800/60 border-gray-700/50' 
+            : 'bg-white/80 border-gray-200/50'
+        }`}>
           <WizardLayout 
             currentStep={currentStep} 
             steps={steps} 

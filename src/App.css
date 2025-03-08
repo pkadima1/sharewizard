@@ -1,4 +1,3 @@
-
 /* Base container styles */
 #root {
   max-width: 1400px;
@@ -50,7 +49,23 @@
   background: linear-gradient(to right, #6d28d9, #7c3aed);
 }
 
-.caption-bg-gradient {
+/* Light mode specific styles */
+:root:not(.dark) .main-container {
+  background-color: #f8fafc !important;
+  color: #0f172a;
+}
+
+:root:not(.dark) .caption-bg-gradient {
+  background: linear-gradient(to bottom, #f1f5f9 0%, #e2e8f0 100%);
+}
+
+/* Dark mode specific styles */
+.dark .main-container {
+  background-color: #020617 !important;
+  color: #f8fafc;
+}
+
+.dark .caption-bg-gradient {
   background: linear-gradient(to bottom, #1A1F2C 0%, #221F26 100%);
 }
 
@@ -108,6 +123,39 @@
 .status-badge-flexy {
   background-color: rgba(52, 211, 153, 0.2);
   color: #6ee7b7;
+}
+
+/* Improved caption preview */
+.caption-preview {
+  border-radius: 0.5rem;
+  overflow: hidden;
+}
+
+.caption-preview-content {
+  padding: 1rem;
+}
+
+.caption-preview-image {
+  width: 100%;
+  height: auto;
+  display: block;
+}
+
+.caption-preview-text {
+  padding: 1rem;
+}
+
+.caption-preview-cta {
+  font-style: italic;
+  margin-top: 0.75rem;
+  opacity: 0.9;
+}
+
+.caption-preview-hashtags {
+  margin-top: 0.75rem;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.25rem;
 }
 
 /* Responsive containers */
