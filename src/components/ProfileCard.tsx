@@ -14,8 +14,8 @@ const ProfileCard: React.FC<ProfileCardProps> = ({ user, onEditProfile }) => {
   const daysRemaining = user.planExpiryDate ? getDaysRemaining(user.planExpiryDate) : null;
   
   return (
-    <div className="profile-card animate-scale-in overflow-hidden">
-      <div className="relative h-36 profile-header-gradient">
+    <div className="overflow-hidden rounded-xl shadow-md bg-gray-800/60 backdrop-blur-sm border border-gray-700/50">
+      <div className="relative h-36 bg-gradient-to-r from-indigo-600 to-violet-600">
         <button 
           onClick={onEditProfile}
           className="absolute top-4 right-4 bg-white/20 backdrop-blur-md text-white px-4 py-2 rounded-lg text-sm font-medium transition-all duration-300 hover:bg-white/30 focus:ring-2 focus:ring-white/50 focus:outline-none"
@@ -36,10 +36,10 @@ const ProfileCard: React.FC<ProfileCardProps> = ({ user, onEditProfile }) => {
           </div>
           
           <div className="mt-3 sm:mt-0 sm:ml-6">
-            <h1 className="text-2xl sm:text-3xl font-bold text-foreground">
+            <h1 className="text-2xl sm:text-3xl font-bold text-white">
               {user.fullName}
             </h1>
-            <div className="mt-1 flex items-center space-x-1.5 text-muted-foreground">
+            <div className="mt-1 flex items-center space-x-1.5 text-gray-300">
               <Mail size={16} />
               <span className="text-sm sm:text-base">{user.email}</span>
             </div>
@@ -47,30 +47,28 @@ const ProfileCard: React.FC<ProfileCardProps> = ({ user, onEditProfile }) => {
         </div>
         
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div className="space-y-3">
-            <div>
-              <div className="text-sm text-muted-foreground">Subscription Plan</div>
-              <div className="flex items-center mt-1">
-                <span className={cn("status-badge", getSubscriptionBadgeClass(user.subscriptionTier))}>
-                  {user.subscriptionTier}
+          <div className="bg-gray-900/40 rounded-lg p-4 backdrop-blur-sm border border-gray-700/30">
+            <div className="text-sm text-gray-400">Subscription Plan</div>
+            <div className="flex items-center mt-1">
+              <span className={cn("inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium", getSubscriptionBadgeClass(user.subscriptionTier))}>
+                {user.subscriptionTier === 'basic' ? 'Lite' : 
+                 user.subscriptionTier === 'premium' ? 'Pro' : 
+                 user.subscriptionTier === 'trial' ? 'Trial' : 'Free'}
+              </span>
+              
+              {daysRemaining !== null && (
+                <span className="ml-2 text-sm text-gray-300">
+                  ({daysRemaining} days remaining)
                 </span>
-                
-                {daysRemaining !== null && (
-                  <span className="ml-2 text-sm text-muted-foreground">
-                    ({daysRemaining} days remaining)
-                  </span>
-                )}
-              </div>
+              )}
             </div>
           </div>
           
-          <div className="space-y-3">
-            <div>
-              <div className="text-sm text-muted-foreground">Member Since</div>
-              <div className="flex items-center mt-1 text-muted-foreground">
-                <Calendar size={16} className="mr-1.5" />
-                <span>{formatDate(user.dateJoined)}</span>
-              </div>
+          <div className="bg-gray-900/40 rounded-lg p-4 backdrop-blur-sm border border-gray-700/30">
+            <div className="text-sm text-gray-400">Member Since</div>
+            <div className="flex items-center mt-1 text-gray-300">
+              <Calendar size={16} className="mr-1.5" />
+              <span>{formatDate(user.dateJoined)}</span>
             </div>
           </div>
         </div>

@@ -1,7 +1,8 @@
-
 import React, { useState, useEffect } from 'react';
-import { MOCK_USER_PROFILE } from '@/lib/constants';
+import { doc, getDoc, updateDoc } from 'firebase/firestore';
+import { db } from '@/lib/firebase';
 import { UserProfile } from '@/types';
+import { useAuth } from '@/contexts/AuthContext';
 import Navbar from '@/components/Navbar';
 import ProfileCard from '@/components/ProfileCard';
 import UsageStats from '@/components/UsageStats';
@@ -13,17 +14,27 @@ const Profile: React.FC = () => {
   const [user, setUser] = useState<UserProfile | null>(null);
   const [loading, setLoading] = useState(true);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
-  
+  const { currentUser } = useAuth();
+
   useEffect(() => {
-    // Simulate fetching user data from Firebase
     const fetchUserData = async () => {
       try {
-        // In a real app, this would fetch from Firebase
-        // For now, use mock data with a slight delay to simulate network request
-        setTimeout(() => {
-          setUser(MOCK_USER_PROFILE);
+        const userDoc = doc(db, 'users', currentUser.uid);
+        const userSnapshot = await getDoc(userDoc);
+        if (userSnapshot.exists()) {
+          setUser(userSnapshot.data() as UserProfile);
           setLoading(false);
-        }, 800);
+        } else {
+          setUser(null);
+          setLoading(false);
+          
+          // Show error toast
+          toast({
+            title: "Error",
+            description: "Failed to load profile data. Please try again.",
+            variant: "destructive",
+          });
+        }
       } catch (error) {
         console.error('Error fetching user data:', error);
         setLoading(false);
@@ -39,7 +50,7 @@ const Profile: React.FC = () => {
     
     fetchUserData();
   }, []);
-  
+
   const handleSaveProfile = (updates: Partial<UserProfile>) => {
     if (!user) return;
     
@@ -56,7 +67,7 @@ const Profile: React.FC = () => {
       description: "Your profile has been updated successfully!",
     });
   };
-  
+
   if (loading) {
     return (
       <div className="min-h-screen bg-background text-foreground">
@@ -70,7 +81,7 @@ const Profile: React.FC = () => {
       </div>
     );
   }
-  
+
   if (!user) {
     return (
       <div className="min-h-screen bg-background text-foreground">
@@ -86,7 +97,7 @@ const Profile: React.FC = () => {
       </div>
     );
   }
-  
+
   return (
     <div className="min-h-screen bg-background text-foreground">
       <Navbar />

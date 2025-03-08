@@ -1,3 +1,4 @@
+
 import { doc, getDoc, updateDoc, increment } from 'firebase/firestore';
 import { db } from './firebase';
 import { DEFAULT_REQUEST_LIMIT } from './constants';
@@ -204,6 +205,83 @@ export const addFlexRequests = async (userId: string, additionalRequests: number
     return true;
   } catch (error) {
     console.error("Error adding flex requests:", error);
+    return false;
+  }
+};
+
+// Fix for sharing and downloading - these are helper functions to prevent DataCloneError
+export const prepareDataForSharing = (data: any): any => {
+  // Remove request objects and other non-serializable data
+  if (typeof data !== 'object' || data === null) {
+    return data;
+  }
+  
+  // Convert to a regular object if it's a File or Blob
+  if (data instanceof File || data instanceof Blob) {
+    return {
+      type: data instanceof File ? 'file' : 'blob',
+      name: data instanceof File ? data.name : 'blob',
+      size: data.size,
+      lastModified: data instanceof File ? data.lastModified : Date.now(),
+    };
+  }
+  
+  // Handle arrays
+  if (Array.isArray(data)) {
+    return data.map(item => prepareDataForSharing(item));
+  }
+  
+  // Handle objects
+  const result: Record<string, any> = {};
+  for (const [key, value] of Object.entries(data)) {
+    // Skip functions, symbols, and non-serializable objects
+    if (typeof value !== 'function' && typeof value !== 'symbol') {
+      result[key] = prepareDataForSharing(value);
+    }
+  }
+  
+  return result;
+};
+
+// Safe sharing function to prevent DataCloneError
+export const safeShareContent = async (content: any, title: string = 'Check out this caption!'): Promise<boolean> => {
+  try {
+    const shareData = prepareDataForSharing({
+      title: title,
+      text: typeof content === 'string' ? content : JSON.stringify(content),
+      url: window.location.href
+    });
+    
+    if (navigator.share) {
+      await navigator.share(shareData);
+      return true;
+    } else {
+      // Fallback for browsers that don't support the Web Share API
+      console.log('Web Share API not supported, copying to clipboard instead');
+      await navigator.clipboard.writeText(shareData.text);
+      return true;
+    }
+  } catch (error) {
+    console.error('Error sharing content:', error);
+    return false;
+  }
+};
+
+// Safe download function to prevent errors
+export const safeDownloadContent = (content: string, filename: string): boolean => {
+  try {
+    const blob = new Blob([content], { type: 'text/plain' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+    return true;
+  } catch (error) {
+    console.error('Error downloading content:', error);
     return false;
   }
 };
