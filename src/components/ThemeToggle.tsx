@@ -16,12 +16,12 @@ const ThemeToggle: React.FC = () => {
     <div className="flex items-center gap-2">
       <button
         onClick={handleToggleTheme}
-        className="p-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
+        className="p-2 rounded-full bg-background hover:bg-muted transition-colors"
         aria-label="Toggle theme"
       >
         {theme === 'light' && <Sun size={20} className="text-amber-500" />}
         {theme === 'dark' && <Moon size={20} className="text-indigo-400" />}
-        {theme === 'system' && <Laptop size={20} className="text-gray-600 dark:text-gray-300" />}
+        {theme === 'system' && <Laptop size={20} className="text-foreground" />}
       </button>
     </div>
   );
@@ -35,29 +35,29 @@ export const ThemeSwitcher: React.FC = () => {
       <button
         onClick={() => setTheme('light')}
         className={`p-2 rounded-full transition-colors ${
-          theme === 'light' ? 'bg-gray-200 dark:bg-gray-700' : 'hover:bg-gray-100 dark:hover:bg-gray-800'
+          theme === 'light' ? 'bg-muted' : 'hover:bg-muted'
         }`}
         aria-label="Light theme"
       >
-        <Sun size={20} className={theme === 'light' ? 'text-amber-500' : 'text-gray-600 dark:text-gray-300'} />
+        <Sun size={20} className={theme === 'light' ? 'text-amber-500' : 'text-muted-foreground'} />
       </button>
       <button
         onClick={() => setTheme('dark')}
         className={`p-2 rounded-full transition-colors ${
-          theme === 'dark' ? 'bg-gray-200 dark:bg-gray-700' : 'hover:bg-gray-100 dark:hover:bg-gray-800'
+          theme === 'dark' ? 'bg-muted' : 'hover:bg-muted'
         }`}
         aria-label="Dark theme"
       >
-        <Moon size={20} className={theme === 'dark' ? 'text-indigo-400' : 'text-gray-600 dark:text-gray-300'} />
+        <Moon size={20} className={theme === 'dark' ? 'text-indigo-400' : 'text-muted-foreground'} />
       </button>
       <button
         onClick={() => setTheme('system')}
         className={`p-2 rounded-full transition-colors ${
-          theme === 'system' ? 'bg-gray-200 dark:bg-gray-700' : 'hover:bg-gray-100 dark:hover:bg-gray-800'
+          theme === 'system' ? 'bg-muted' : 'hover:bg-muted'
         }`}
         aria-label="System theme"
       >
-        <Laptop size={20} className={theme === 'system' ? 'text-gray-800 dark:text-gray-200' : 'text-gray-600 dark:text-gray-300'} />
+        <Laptop size={20} className={theme === 'system' ? 'text-foreground' : 'text-muted-foreground'} />
       </button>
     </div>
   );
