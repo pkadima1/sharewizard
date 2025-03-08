@@ -1,18 +1,7 @@
 import html2canvas from 'html2canvas';
 import { toast } from "sonner";
 import { getStorage, ref, uploadBytes, getDownloadURL } from 'firebase/storage';
-
-export type MediaType = 'image' | 'video' | 'text-only';
-
-export interface Caption {
-  title: string;
-  caption: string;
-  cta: string;
-  hashtags: string[];
-}
-
-// Add a new type for caption styles
-export type CaptionStyle = 'standard' | 'handwritten';
+import { MediaType, Caption, CaptionStyle } from '@/types/mediaTypes';
 
 // Helper function to create video with caption overlay
 export const createCaptionedVideo = async (
@@ -570,7 +559,7 @@ export const sharePreview = async (
   }
 };
 
-// Fix the downloadPreview function to properly handle different media types
+// Fixed downloadPreview function with proper error handling and reliable download mechanism
 export const downloadPreview = async (
   previewRef: React.RefObject<HTMLDivElement>,
   mediaType: MediaType,
@@ -578,11 +567,17 @@ export const downloadPreview = async (
   filename?: string,
   captionStyle: CaptionStyle = 'standard'
 ): Promise<void> => {
-  if (!previewRef.current) throw new Error('Preview element not found');
+  if (!previewRef.current) {
+    toast.error('Preview element not found');
+    throw new Error('Preview element not found');
+  }
 
   // Target the sharable-content element
   const sharableContent = previewRef.current.querySelector('#sharable-content');
-  if (!sharableContent) throw new Error('Sharable content not found');
+  if (!sharableContent) {
+    toast.error('Sharable content not found');
+    throw new Error('Sharable content not found');
+  }
   
   // Create a loading toast
   const loadingToastId = toast.loading('Preparing download...');
@@ -603,57 +598,113 @@ export const downloadPreview = async (
     if (mediaType === 'video') {
       // For video content
       const video = sharableContent.querySelector('video');
-      if (!video || !video.src) throw new Error('Video source not found');
+      if (!video) {
+        toast.error('Video element not found', { id: loadingToastId });
+        throw new Error('Video element not found');
+      }
+      
+      // Ensure the video is loaded
+      if (video.readyState < 2) { // HAVE_CURRENT_DATA or higher
+        await new Promise<void>((resolve) => {
+          const handleLoadedData = () => {
+            video.removeEventListener('loadeddata', handleLoadedData);
+            resolve();
+          };
+          video.addEventListener('loadeddata', handleLoadedData);
+          
+          // Set a timeout in case the video doesn't load
+          setTimeout(() => {
+            video.removeEventListener('loadeddata', handleLoadedData);
+            resolve(); // Continue anyway
+          }, 3000);
+        });
+      }
 
       // Create video with selected caption style
       toast.loading(`Creating video with ${captionStyle} style...`, { id: loadingToastId });
       
       try {
+        if (!video.src) {
+          throw new Error('Video source not available');
+        }
+        
         // Pass the caption style to createCaptionedVideo
         const captionedBlob = await createCaptionedVideo(video, caption, captionStyle);
-        const url = URL.createObjectURL(captionedBlob);
         
-        // Create download link with title-based filename
-        const downloadLink = document.createElement('a');
-        downloadLink.href = url;
-        downloadLink.download = filename || `${defaultFilename}.webm`;
-        downloadLink.style.display = 'none';
-        document.body.appendChild(downloadLink);
-        downloadLink.click();
-        document.body.removeChild(downloadLink);
-        
-        // Clean up
-        setTimeout(() => URL.revokeObjectURL(url), 100);
-        toast.success(`Video with ${captionStyle} captions downloaded!`, { id: loadingToastId });
+        // Use a more reliable download method
+        downloadBlobAsFile(
+          captionedBlob, 
+          filename || `${defaultFilename}.webm`,
+          loadingToastId,
+          `Video with ${captionStyle} captions downloaded!`
+        );
       } catch (captionError) {
         console.error('Error creating captioned video:', captionError);
         toast.error('Failed to create captioned video, downloading original instead', { id: loadingToastId });
         
         // Fallback to original video, still using title-based filename
-        await downloadOriginalVideo(video, filename || `${defaultFilename}-original.mp4`, loadingToastId);
+        if (video.src) {
+          try {
+            const response = await fetch(video.src);
+            if (response.ok) {
+              const blob = await response.blob();
+              downloadBlobAsFile(
+                blob, 
+                filename || `${defaultFilename}-original.mp4`,
+                loadingToastId,
+                'Original video downloaded successfully!'
+              );
+            } else {
+              throw new Error(`Failed to fetch video: ${response.status}`);
+            }
+          } catch (fetchError) {
+            console.error('Error fetching video:', fetchError);
+            toast.error('Failed to download video', { id: loadingToastId });
+            throw fetchError;
+          }
+        } else {
+          toast.error('Video source not available', { id: loadingToastId });
+          throw new Error('Video source not available');
+        }
       }
     } else {
       // For image or text, create a screenshot with title-based filename
-      const canvas = await html2canvas(sharableContent as HTMLElement, {
-        useCORS: true,
-        scale: 2,
-        logging: false,
-        backgroundColor: getComputedStyle(document.documentElement)
-          .getPropertyValue('--background') || '#ffffff',
-        ignoreElements: (element) => {
-          // Ignore any elements that shouldn't be captured
-          return element.classList.contains('social-share-buttons') ||
-                 element.classList.contains('preview-controls');
-        }
-      });
-      
-      // Create download link
-      const downloadLink = document.createElement('a');
-      downloadLink.href = canvas.toDataURL('image/png');
-      downloadLink.download = filename || `${defaultFilename}.png`;
-      downloadLink.click();
-      
-      toast.success('Content downloaded successfully!', { id: loadingToastId });
+      try {
+        const canvas = await html2canvas(sharableContent as HTMLElement, {
+          useCORS: true,
+          scale: 2,
+          logging: false,
+          backgroundColor: getComputedStyle(document.documentElement)
+            .getPropertyValue('--background') || '#ffffff',
+          ignoreElements: (element) => {
+            // Ignore any elements that shouldn't be captured
+            return element.classList.contains('social-share-buttons') ||
+                   element.classList.contains('preview-controls');
+          }
+        });
+        
+        // Convert canvas to blob and download
+        canvas.toBlob(
+          (blob) => {
+            if (blob) {
+              downloadBlobAsFile(
+                blob, 
+                filename || `${defaultFilename}.png`,
+                loadingToastId,
+                'Content downloaded successfully!'
+              );
+            } else {
+              toast.error('Failed to create image file', { id: loadingToastId });
+            }
+          },
+          'image/png',
+          0.95
+        );
+      } catch (captureError) {
+        console.error('Error capturing content:', captureError);
+        toast.error('Failed to capture content for download', { id: loadingToastId });
+        throw captureError;
+      }
     }
   } catch (error) {
     console.error('Download error:', error);
@@ -662,33 +713,38 @@ export const downloadPreview = async (
   }
 };
 
-// Helper function to download original video
-async function downloadOriginalVideo(
-  video: HTMLVideoElement, 
-  filename?: string, 
-  toastId?: string | number
-): Promise<void> {
-  // Fetch the video
-  const response = await fetch(video.src);
-  if (!response.ok) throw new Error('Failed to fetch video');
-  
-  const blob = await response.blob();
-  const url = URL.createObjectURL(blob);
-  
-  // Create download link
-  const downloadLink = document.createElement('a');
-  downloadLink.href = url;
-  downloadLink.download = filename || `video-${Date.now()}.${blob.type?.split('/')[1] || 'mp4'}`;
-  downloadLink.style.display = 'none';
-  document.body.appendChild(downloadLink);
-  downloadLink.click();
-  document.body.removeChild(downloadLink);
-  
-  // Clean up the object URL
-  setTimeout(() => URL.revokeObjectURL(url), 100);
-  
-  if (toastId) {
-    toast.success('Original video downloaded successfully!', { id: toastId });
+// Helper function for reliable file downloads using Blob and native browser download
+function downloadBlobAsFile(blob: Blob, filename: string, toastId?: string | number, successMessage?: string): void {
+  try {
+    // Create a Blob URL
+    const url = URL.createObjectURL(blob);
+    
+    // Create a link element
+    const downloadLink = document.createElement('a');
+    downloadLink.href = url;
+    downloadLink.download = filename;
+    downloadLink.style.display = 'none';
+    
+    // Add to DOM, click it, and remove it
+    document.body.appendChild(downloadLink);
+    downloadLink.click();
+    
+    // Small delay before removing the link and revoking the URL
+    setTimeout(() => {
+      document.body.removeChild(downloadLink);
+      URL.revokeObjectURL(url);
+      
+      // Show success message if provided
+      if (toastId && successMessage) {
+        toast.success(successMessage, { id: toastId });
+      }
+    }, 100);
+  } catch (error) {
+    console.error('Error downloading file:', error);
+    if (toastId) {
+      toast.error('Download failed. Please try again.', { id: toastId });
+    }
+    throw error;
   }
 }
 
