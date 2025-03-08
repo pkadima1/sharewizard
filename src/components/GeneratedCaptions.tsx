@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useRef } from 'react';
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
@@ -11,8 +12,8 @@ import html2canvas from 'html2canvas';
 import { Switch } from "@/components/ui/switch";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
+import { sharePreview, downloadPreview, MediaType } from '@/utils/sharingUtils';
 import { Badge } from "@/components/ui/badge";
-import { useTheme } from '@/contexts/ThemeContext';
 
 interface GeneratedCaptionsProps {
   selectedMedia: File | null;
@@ -43,7 +44,6 @@ const GeneratedCaptions: React.FC<GeneratedCaptionsProps> = ({
   onCaptionOverlayModeChange,
   postIdea
 }) => {
-  const { resolvedTheme } = useTheme();
   const [captions, setCaptions] = useState<GeneratedCaption[]>([]);
   const [selectedCaption, setSelectedCaption] = useState<number>(0);
   const [error, setError] = useState<string | null>(null);
@@ -55,8 +55,8 @@ const GeneratedCaptions: React.FC<GeneratedCaptionsProps> = ({
   const videoRef = useRef<HTMLVideoElement>(null);
   const [isEditing, setIsEditing] = useState(false);
   const [editingCaption, setEditingCaption] = useState<GeneratedCaption | null>(null);
-  const [compositeCanvas, setCompositeCanvas] = useState<HTMLCanvasElement | null>(null);
   
+  // Determine media type
   const getMediaType = (): MediaType => {
     if (isTextOnly) return 'text-only';
     if (selectedMedia?.type.startsWith('image')) return 'image';
@@ -71,6 +71,7 @@ const GeneratedCaptions: React.FC<GeneratedCaptionsProps> = ({
       try {
         setError(null);
         
+        // First check if the user can make the request without incrementing
         const availability = await checkRequestAvailability();
         
         if (!availability.canMakeRequest) {
@@ -79,6 +80,7 @@ const GeneratedCaptions: React.FC<GeneratedCaptionsProps> = ({
           return;
         }
         
+        // Generate captions
         const captionResponse = await generateCaptions(
           selectedPlatform,
           selectedTone,
@@ -87,7 +89,9 @@ const GeneratedCaptions: React.FC<GeneratedCaptionsProps> = ({
           postIdea
         );
 
+        // Only increment the usage counter if generation was successful
         if (captionResponse && captionResponse.captions) {
+          // Increment the counter only after successful generation
           await incrementRequestUsage();
           
           setCaptions(captionResponse.captions);
@@ -108,28 +112,6 @@ const GeneratedCaptions: React.FC<GeneratedCaptionsProps> = ({
     fetchCaptions();
   }, [isGenerating]);
 
-  const createCompositeImage = async () => {
-    if (!previewRef.current) return null;
-
-    try {
-      const canvas = await html2canvas(previewRef.current, {
-        scale: 2,
-        useCORS: true,
-        allowTaint: true,
-        backgroundColor: resolvedTheme === 'dark' ? '#0f172a' : '#ffffff',
-        logging: false,
-        width: previewRef.current.offsetWidth,
-        height: previewRef.current.offsetHeight,
-      });
-      
-      return canvas;
-    } catch (error) {
-      console.error("Error creating composite image:", error);
-      toast.error("Failed to create image for sharing. Please try again.");
-      return null;
-    }
-  };
-
   const handleRegenerateClick = () => {
     setCaptions([]);
     setIsGenerating(true);
@@ -144,29 +126,18 @@ const GeneratedCaptions: React.FC<GeneratedCaptionsProps> = ({
   };
 
   const handleDownload = async () => {
-    if (!previewRef.current) {
-      toast.error("No content to download");
-      return;
-    }
+    if (!previewRef.current) return;
     
     try {
       setIsDownloading(true);
       
-      const canvas = await createCompositeImage();
-      if (!canvas) {
-        toast.error("Failed to create image for download");
-        return;
-      }
-      
-      const link = document.createElement('a');
-      link.href = canvas.toDataURL('image/png');
-      link.download = `engageperfect-caption-${Date.now()}.png`;
-      
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-      
-      toast.success("Content downloaded successfully!");
+      await downloadPreview(
+        previewRef,
+        getMediaType(),
+        captions[selectedCaption],
+        undefined,
+        'standard'
+      );
     } catch (error) {
       console.error("Error downloading:", error);
       toast.error("Failed to download. Please try again.");
@@ -176,71 +147,25 @@ const GeneratedCaptions: React.FC<GeneratedCaptionsProps> = ({
   };
 
   const handleShareToSocial = async () => {
-    if (!previewRef.current || !captions[selectedCaption]) {
-      toast.error("No content to share");
-      return;
-    }
+    if (!captions[selectedCaption]) return;
     
     try {
       setIsSharing(true);
       
-      const canvas = await createCompositeImage();
-      if (!canvas) {
-        toast.error("Failed to create image for sharing");
-        return;
+      const result = await sharePreview(
+        previewRef,
+        captions[selectedCaption],
+        getMediaType()
+      );
+      
+      if (result.message) {
+        toast.success(result.message);
       }
-      
-      setCompositeCanvas(canvas);
-      
-      canvas.toBlob(async (blob) => {
-        if (!blob) {
-          toast.error("Failed to process image for sharing");
-          return;
-        }
-        
-        const file = new File([blob], `engageperfect-post-${Date.now()}.png`, { type: 'image/png' });
-        
-        const text = `${captions[selectedCaption].caption}\n\n${captions[selectedCaption].cta}\n\n${captions[selectedCaption].hashtags.map(h => `#${h}`).join(' ')}`;
-        
-        if (navigator.share) {
-          try {
-            await navigator.share({
-              files: [file],
-              title: captions[selectedCaption].title,
-              text: text
-            });
-            toast.success("Shared successfully!");
-          } catch (error) {
-            console.error("Error sharing via Web Share API:", error);
-            
-            handleFallbackShare(file);
-          }
-        } else {
-          handleFallbackShare(file);
-        }
-      }, 'image/png', 0.95);
-      
     } catch (error) {
       console.error("Error sharing:", error);
       toast.error("Failed to share. Please try again.");
     } finally {
       setIsSharing(false);
-    }
-  };
-
-  const handleFallbackShare = (file: File) => {
-    const link = document.createElement('a');
-    link.href = URL.createObjectURL(file);
-    link.download = file.name;
-    
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-    
-    if (captions[selectedCaption]) {
-      const text = `${captions[selectedCaption].caption}\n\n${captions[selectedCaption].cta}\n\n${captions[selectedCaption].hashtags.map(h => `#${h}`).join(' ')}`;
-      navigator.clipboard.writeText(text);
-      toast.success("Image downloaded and text copied to clipboard for sharing!");
     }
   };
 
@@ -370,7 +295,7 @@ const GeneratedCaptions: React.FC<GeneratedCaptionsProps> = ({
   return (
     <div className="w-full max-w-6xl mx-auto p-4">
       <div className="flex justify-between items-center mb-6">
-        <h2 className={`text-xl font-semibold ${resolvedTheme === 'dark' ? 'text-white' : 'text-gray-800'}`}>Choose Your Caption</h2>
+        <h2 className="text-xl font-semibold dark:text-white">Choose Your Caption</h2>
         <Button 
           variant="outline" 
           size="sm"
@@ -381,6 +306,7 @@ const GeneratedCaptions: React.FC<GeneratedCaptionsProps> = ({
       </div>
       
       <div className="flex flex-col md:flex-row gap-6">
+        {/* Captions List - Left Side */}
         <div className="md:w-1/2 lg:w-3/5">
           <div className="space-y-4">
             {captions.map((caption, index) => (
@@ -388,44 +314,36 @@ const GeneratedCaptions: React.FC<GeneratedCaptionsProps> = ({
                 key={index}
                 className={`
                   p-4 border rounded-lg cursor-pointer transition-all 
-                  ${resolvedTheme === 'dark' 
-                    ? 'hover:border-blue-500 hover:bg-blue-900/20' 
-                    : 'hover:border-blue-300 hover:bg-blue-50'}
+                  hover:border-blue-300 hover:bg-blue-50 dark:hover:border-blue-500 dark:hover:bg-blue-900/20
                   ${selectedCaption === index 
-                    ? (resolvedTheme === 'dark' 
-                      ? 'border-blue-500 bg-blue-900/20' 
-                      : 'border-blue-500 bg-blue-50') 
-                    : (resolvedTheme === 'dark'
-                      ? 'border-gray-700'
-                      : 'border-gray-200')}
+                    ? 'border-blue-500 bg-blue-50 dark:border-blue-500 dark:bg-blue-900/20' 
+                    : 'border-gray-200 dark:border-gray-700'}
                 `}
                 onClick={() => setSelectedCaption(index)}
                 onMouseEnter={() => setHoveredCaption(index)}
                 onMouseLeave={() => setHoveredCaption(null)}
               >
-                <h3 className={`font-medium mb-2 ${resolvedTheme === 'dark' ? 'text-gray-100' : 'text-gray-900'}`}>{caption.title}</h3>
-                <p className={`text-sm mb-3 ${resolvedTheme === 'dark' ? 'text-gray-300' : 'text-gray-700'}`}>{caption.caption}</p>
-                <p className={`text-sm italic mb-3 ${resolvedTheme === 'dark' ? 'text-gray-400' : 'text-gray-600'}`}>{caption.cta}</p>
+                <h3 className="font-medium mb-2 text-gray-900 dark:text-gray-100">{caption.title}</h3>
+                <p className="text-sm text-gray-700 dark:text-gray-300 mb-3 line-clamp-3">{caption.caption}</p>
                 <div className="flex flex-wrap gap-1 mb-2">
-                  {caption.hashtags.map((hashtag, idx) => (
-                    <span key={idx} className={`
-                      px-2 py-0.5 rounded text-xs 
-                      ${resolvedTheme === 'dark' 
-                        ? 'bg-gray-800 text-blue-400' 
-                        : 'bg-gray-100 text-blue-600'}
-                    `}>
+                  {caption.hashtags.slice(0, 3).map((hashtag, idx) => (
+                    <span key={idx} className="bg-gray-100 dark:bg-gray-800 px-2 py-0.5 rounded text-xs text-blue-600 dark:text-blue-400">
                       #{hashtag}
                     </span>
                   ))}
+                  {caption.hashtags.length > 3 && (
+                    <span className="bg-gray-100 dark:bg-gray-800 px-2 py-0.5 rounded text-xs text-gray-500 dark:text-gray-400">
+                      +{caption.hashtags.length - 3} more
+                    </span>
+                  )}
                 </div>
                 <div className="flex justify-end mt-2">
                   <Button 
                     variant="ghost" 
                     size="sm"
                     className={`
-                      ${resolvedTheme === 'dark' 
-                        ? 'text-blue-400 hover:text-blue-300 hover:bg-blue-900/30' 
-                        : 'text-blue-600 hover:text-blue-700 hover:bg-blue-50'}
+                      text-blue-600 hover:text-blue-700 hover:bg-blue-50 dark:text-blue-400 
+                      dark:hover:text-blue-300 dark:hover:bg-blue-900/30
                       ${(hoveredCaption === index || selectedCaption === index) ? 'opacity-100' : 'opacity-0'}
                     `}
                     onClick={(e) => {
@@ -442,11 +360,12 @@ const GeneratedCaptions: React.FC<GeneratedCaptionsProps> = ({
           </div>
         </div>
         
+        {/* Preview - Right Side */}
         <div className="md:w-1/2 lg:w-2/5">
           <div className="sticky top-6 space-y-4">
-            <div className={`p-4 rounded-lg ${resolvedTheme === 'dark' ? 'bg-gray-800' : 'bg-gray-100'}`}>
+            <div className="bg-gray-100 dark:bg-gray-800 p-4 rounded-lg">
               <div className="flex justify-between items-center mb-3">
-                <h3 className={`font-medium ${resolvedTheme === 'dark' ? 'text-white' : 'text-gray-800'}`}>Preview</h3>
+                <h3 className="font-medium dark:text-white">Preview</h3>
                 <div className="flex gap-2">
                   {!isEditing && (
                     <>
@@ -492,10 +411,10 @@ const GeneratedCaptions: React.FC<GeneratedCaptionsProps> = ({
                 </div>
               </div>
               
+              {/* Caption Preview Container */}
               <div 
                 ref={previewRef}
-                className={`rounded-md overflow-hidden ${resolvedTheme === 'dark' ? 'bg-gray-900' : 'bg-white'}`}
-                style={{ maxWidth: '100%' }}
+                className="rounded-md overflow-hidden bg-white dark:bg-gray-900"
               >
                 {isEditing ? (
                   <div className="p-6 space-y-4">
@@ -561,8 +480,8 @@ const GeneratedCaptions: React.FC<GeneratedCaptionsProps> = ({
                               src={previewUrl} 
                               alt="Preview" 
                               className="w-full h-full object-cover" 
-                              crossOrigin="anonymous"
                             />
+                            {/* Caption overlay for images */}
                             {captionOverlayMode === 'overlay' && captions.length > 0 && (
                               <div className="absolute bottom-0 left-0 right-0 bg-black bg-opacity-70 p-4 backdrop-blur-sm">
                                 <p className="text-white text-lg font-semibold mb-2">{captions[selectedCaption]?.title}</p>
@@ -585,11 +504,8 @@ const GeneratedCaptions: React.FC<GeneratedCaptionsProps> = ({
                               src={previewUrl} 
                               className="w-full h-full object-cover" 
                               controls
-                              crossOrigin="anonymous"
-                              playsInline
-                              controlsList="nodownload"
-                              preload="metadata"
                             />
+                            {/* Caption overlay for videos */}
                             {captionOverlayMode === 'overlay' && captions.length > 0 && (
                               <div className="absolute bottom-0 left-0 right-0 bg-black bg-opacity-70 p-4 backdrop-blur-sm">
                                 <p className="text-white text-lg font-semibold mb-2">{captions[selectedCaption]?.title}</p>
@@ -614,28 +530,18 @@ const GeneratedCaptions: React.FC<GeneratedCaptionsProps> = ({
                     )}
                   
                     {captions.length > 0 && (captionOverlayMode === 'below' || isTextOnly) && (
-                      <div className={`space-y-3 p-6 ${!isTextOnly && captionOverlayMode === 'below' ? (
-                        resolvedTheme === 'dark' ? 'bg-blue-950 text-white' : 'bg-blue-50 text-gray-900'
-                      ) : ''}`}>
+                      <div className={`space-y-3 p-6 ${!isTextOnly && captionOverlayMode === 'below' ? 'bg-blue-950 text-white' : ''}`}>
                         <h3 className="font-semibold text-xl">{captions[selectedCaption]?.title}</h3>
                         <p className="whitespace-pre-line">{captions[selectedCaption]?.caption}</p>
-                        <p className={`italic ${resolvedTheme === 'dark' ? 'text-gray-300' : 'text-gray-600'}`}>
-                          {captions[selectedCaption]?.cta}
-                        </p>
+                        <p className="italic text-gray-300">{captions[selectedCaption]?.cta}</p>
                         <div className="flex flex-wrap gap-1 pt-2">
                           {captions[selectedCaption]?.hashtags.map((hashtag, idx) => (
-                            <Badge key={idx} variant="secondary" className={
-                              resolvedTheme === 'dark' ? 'text-blue-400' : 'text-blue-600'
-                            }>
+                            <Badge key={idx} variant="secondary" className="text-blue-400">
                               #{hashtag}
                             </Badge>
                           ))}
                         </div>
-                        <div className={`text-xs pt-3 mt-3 border-t ${
-                          resolvedTheme === 'dark' 
-                            ? 'text-gray-500 border-gray-800' 
-                            : 'text-gray-500 border-gray-200'
-                        }`}>
+                        <div className="text-xs text-gray-500 pt-3 mt-3 border-t border-gray-800">
                           Created with EngagePerfect • https://engageperfect.com
                         </div>
                       </div>
@@ -644,21 +550,24 @@ const GeneratedCaptions: React.FC<GeneratedCaptionsProps> = ({
                 )}
               </div>
               
-              <div className="mt-4 flex items-center justify-end">
-                <div className="flex items-center space-x-2">
-                  <span className={`text-xs ${resolvedTheme === 'dark' ? 'text-gray-400' : 'text-gray-500'}`}>Caption below</span>
-                  <Switch 
-                    checked={captionOverlayMode === 'overlay'} 
-                    onCheckedChange={handleToggleOverlayMode} 
-                  />
-                  <span className={`text-xs ${resolvedTheme === 'dark' ? 'text-gray-400' : 'text-gray-500'}`}>Caption overlay</span>
+              {/* Caption overlay mode toggle - only for media posts */}
+              {!isTextOnly && selectedMedia && !isEditing && (
+                <div className="mt-4 flex items-center justify-end">
+                  <div className="flex items-center space-x-2">
+                    <span className="text-xs text-gray-500 dark:text-gray-400">Caption below</span>
+                    <Switch 
+                      checked={captionOverlayMode === 'overlay'} 
+                      onCheckedChange={handleToggleOverlayMode} 
+                    />
+                    <span className="text-xs text-gray-500 dark:text-gray-400">Caption overlay</span>
+                  </div>
                 </div>
-              </div>
+              )}
             </div>
             
             {!isEditing && (
               <div className="space-y-3">
-                <h3 className={`font-medium ${resolvedTheme === 'dark' ? 'text-white' : 'text-gray-800'}`}>Share to Social Media</h3>
+                <h3 className="font-medium dark:text-white">Share to Social Media</h3>
                 <Button
                   className="w-full bg-purple-600 hover:bg-purple-700 text-white"
                   onClick={handleShareToSocial}
@@ -669,10 +578,10 @@ const GeneratedCaptions: React.FC<GeneratedCaptionsProps> = ({
                   ) : (
                     <Share className="h-4 w-4 mr-2" />
                   )}
-                  Share via Browser
+                  Share via Browser (WhatsApp, Telegram, etc.)
                 </Button>
                 
-                <div className={`text-sm ${resolvedTheme === 'dark' ? 'text-gray-400' : 'text-gray-500'}`}>
+                <div className="text-sm text-gray-500 dark:text-gray-400">
                   Or share directly to:
                 </div>
                 
