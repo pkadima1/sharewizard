@@ -138,8 +138,8 @@ const CaptionGenerator: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen flex flex-col bg-gradient-to-b from-gray-900 via-[#1A1F2C] to-[#221F26] dark:from-gray-900 dark:via-[#1A1F2C] dark:to-[#221F26]">
-      <div className="px-4 py-[100px]">
+    <div className="min-h-screen flex flex-col bg-background">
+      <div className="px-4 py-[100px] bg-gradient-to-b from-blue-900 via-indigo-900 to-purple-900 dark:from-gray-900 dark:via-[#1A1F2C] dark:to-[#221F26]">
         <h1 className="text-2xl md:text-3xl font-bold text-white text-center">
           Caption Generator
         </h1>
@@ -148,8 +148,8 @@ const CaptionGenerator: React.FC = () => {
         </p>
       </div>
       
-      <div className="container mx-auto flex-1 p-4 md:p-6 max-w-6xl">
-        <div className="bg-gray-800/60 backdrop-blur-md border border-gray-700/50 rounded-xl shadow-md overflow-hidden">
+      <div className="container mx-auto flex-1 p-4 md:p-6 max-w-6xl -mt-20">
+        <div className="bg-card border border-border rounded-xl shadow-md overflow-hidden">
           <WizardLayout 
             currentStep={currentStep} 
             steps={steps} 
