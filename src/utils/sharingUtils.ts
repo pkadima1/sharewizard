@@ -421,6 +421,16 @@ function truncateText(text: string, ctx: CanvasRenderingContext2D, maxWidth: num
   return truncated + '...';
 }
 
+// Helper function to convert text to title case
+function toTitleCase(text: string): string {
+  return text.replace(
+    /\w\S*/g,
+    function(txt) {
+      return txt.charAt(0).toUpperCase() + txt.substring(1).toLowerCase();
+    }
+  );
+}
+
 // Helper function to upload to Firebase
 const uploadToFirebase = async (blob: Blob, caption: Caption, mediaType: MediaType): Promise<string> => {
   const storage = getStorage();
@@ -925,4 +935,9 @@ export const isFileShareSupported = (): boolean => {
 /**
  * Tracks social sharing events for analytics
  * @param platform The platform where content was shared
- * @param
+ * @param mediaType The type of media that was shared
+ */
+export const trackSocialShare = (platform: string, mediaType: MediaType): void => {
+  // Analytics tracking functionality can be implemented here
+  console.log(`Shared ${mediaType} content to ${platform}`);
+};
