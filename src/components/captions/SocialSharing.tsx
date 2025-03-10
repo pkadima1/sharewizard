@@ -5,6 +5,7 @@ import { Share, Instagram, Facebook, Twitter, Linkedin, Youtube, Music } from 'l
 import { toast } from "sonner";
 import { shareToPlatform } from '@/utils/socialMediaUtils';
 import { MediaType } from '@/types/mediaTypes';
+import { isWebShareSupported, isFileShareSupported } from '@/utils/sharingUtils';
 
 interface SocialSharingProps {
   isEditing: boolean;
@@ -27,6 +28,9 @@ const SocialSharing: React.FC<SocialSharingProps> = ({
 }) => {
   const [platformLoading, setPlatformLoading] = useState<string | null>(null);
   const [browserShareLoading, setBrowserShareLoading] = useState<boolean>(false);
+  
+  const supportsWebShare = isWebShareSupported();
+  const supportsFileShare = isFileShareSupported();
   
   if (isEditing) return null;
 
@@ -92,6 +96,22 @@ const SocialSharing: React.FC<SocialSharingProps> = ({
     ? platforms[selectedPlatform as keyof typeof platforms] 
     : null;
 
+  // Display a different sharing message based on media type
+  const getBrowserShareText = () => {
+    if (mediaType === 'video') {
+      if (supportsFileShare) {
+        return "Share via Browser (with video)";
+      }
+      return "Share via Browser (caption only, video opens separately)";
+    } else if (mediaType === 'image') {
+      if (supportsFileShare) {
+        return "Share via Browser (with image)";
+      }
+      return "Share via Browser (caption only)";
+    }
+    return "Share via Browser (WhatsApp, Telegram, etc.)";
+  };
+
   return (
     <div className="space-y-3">
       <h3 className="font-medium dark:text-white">Share to Social Media</h3>
@@ -112,7 +132,7 @@ const SocialSharing: React.FC<SocialSharingProps> = ({
         </Button>
       )}
       
-      {/* Fallback browser sharing option */}
+      {/* Fallback browser sharing option with improved feedback */}
       <Button
         className="w-full bg-purple-600 hover:bg-purple-700 text-white"
         onClick={handleBrowserShare}
@@ -123,8 +143,14 @@ const SocialSharing: React.FC<SocialSharingProps> = ({
         ) : (
           <Share className="h-4 w-4 mr-2" />
         )}
-        Share via Browser (WhatsApp, Telegram, etc.)
+        {getBrowserShareText()}
       </Button>
+      
+      {!supportsWebShare && (
+        <div className="text-xs text-amber-500 dark:text-amber-400">
+          Your browser doesn't support Web Share API. Content will be copied to clipboard.
+        </div>
+      )}
       
       <div className="text-sm text-gray-500 dark:text-gray-400">
         Or share directly to:
