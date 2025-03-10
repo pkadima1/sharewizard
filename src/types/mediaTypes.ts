@@ -19,4 +19,7 @@ export interface DownloadOptions {
   includeCaption?: boolean;
   captionStyle?: CaptionStyle;
   format?: 'webm' | 'mp4' | 'png' | 'jpg'; // Output format options
+  fontScale?: number; // Control text size
+  showAllHashtags?: boolean; // Ensure all hashtags are shown
+  preserveCaptionOrder?: boolean; // Maintain order: title, caption, CTA, hashtags
 }

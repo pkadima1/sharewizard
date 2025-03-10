@@ -1,4 +1,3 @@
-
 import html2canvas from 'html2canvas';
 import { toast } from "sonner";
 import { getStorage, ref, uploadBytes, getDownloadURL } from 'firebase/storage';
@@ -26,7 +25,7 @@ export const createCaptionedVideo = async (
 
       // Set canvas dimensions based on caption style
       canvas.width = videoElement.videoWidth;
-      const captionHeight = captionStyle === 'standard' ? 220 : 0;
+      const captionHeight = captionStyle === 'standard' ? 260 : 0; // Increased height for caption
       canvas.height = videoElement.videoHeight + (captionStyle === 'standard' ? captionHeight : 0);
 
       // Clone video element to preserve original
@@ -65,7 +64,7 @@ export const createCaptionedVideo = async (
         // Use higher quality encoding settings
         const recorderOptions = {
           mimeType: 'video/webm;codecs=vp9,opus', // Use VP9 for better quality
-          videoBitsPerSecond: 5000000 // Increase bitrate for better quality (5 Mbps)
+          videoBitsPerSecond: 8000000 // Increase bitrate for better quality (8 Mbps)
         };
 
         let mediaRecorder: MediaRecorder;
@@ -76,7 +75,7 @@ export const createCaptionedVideo = async (
           try {
             mediaRecorder = new MediaRecorder(combinedStream, {
               mimeType: 'video/webm;codecs=vp8,opus',
-              videoBitsPerSecond: 4000000
+              videoBitsPerSecond: 6000000 // 6 Mbps fallback
             });
           } catch (e2) {
             console.warn('Falling back to default codec:', e2);
@@ -168,7 +167,7 @@ function drawHandwrittenOverlay(
   height: number
 ): void {
   // Apply semi-transparent overlay to improve text readability
-  ctx.fillStyle = 'rgba(0, 0, 0, 0.3)';
+  ctx.fillStyle = 'rgba(0, 0, 0, 0.5)'; // Increased opacity for better contrast
   ctx.fillRect(0, 0, width, height);
   
   // Set handwritten-style font
@@ -194,19 +193,50 @@ function drawHandwrittenOverlay(
   // Word wrap for caption text
   wrapHandwrittenText(ctx, captionText, width / 2, height / 2, width * 0.8, 40);
   
-  // CTA at bottom - MOVED BEFORE HASHTAGS
+  // CTA with proper styling
   if (caption.cta) {
-    ctx.font = '26px "Segoe Script", "Brush Script MT", "Comic Sans MS", cursive';
+    ctx.font = '28px "Segoe Script", "Brush Script MT", "Comic Sans MS", cursive';
     ctx.fillStyle = '#e2e8f0'; // Light color for CTA
-    ctx.fillText(truncateText(caption.cta, ctx, width * 0.9), width / 2, height * 0.82);
+    ctx.fillText(truncateText(caption.cta, ctx, width * 0.9), width / 2, height * 0.75);
   }
   
   // Hashtags at the very bottom
   if (caption.hashtags && caption.hashtags.length > 0) {
     ctx.font = '28px "Segoe Script", "Brush Script MT", "Comic Sans MS", cursive';
     ctx.fillStyle = '#3b82f6'; // Blue for hashtags
+    
+    // Handle multiple hashtags with wrapping if needed
     const hashtagText = caption.hashtags.map(tag => `#${tag}`).join(' ');
-    ctx.fillText(truncateText(hashtagText, ctx, width * 0.9), width / 2, height * 0.92);
+    
+    // Multiple lines for longer hashtag lists
+    if (ctx.measureText(hashtagText).width > width * 0.9) {
+      const hashtagLines = [];
+      let currentLine = '';
+      const tags = hashtagText.split(' ');
+      
+      for (const tag of tags) {
+        const testLine = currentLine + tag + ' ';
+        if (ctx.measureText(testLine).width > width * 0.9) {
+          hashtagLines.push(currentLine.trim());
+          currentLine = tag + ' ';
+        } else {
+          currentLine = testLine;
+        }
+      }
+      
+      if (currentLine.trim()) {
+        hashtagLines.push(currentLine.trim());
+      }
+      
+      // Draw each line of hashtags
+      let lineY = height * 0.85;
+      for (const line of hashtagLines) {
+        ctx.fillText(line, width / 2, lineY);
+        lineY += 35; // Line spacing
+      }
+    } else {
+      ctx.fillText(hashtagText, width / 2, height * 0.85);
+    }
   }
 }
 
@@ -223,108 +253,77 @@ function drawStandardCaption(
 
   // Draw caption text with enhanced styling for maximum readability
   ctx.fillStyle = 'white';
-  let y = videoElement.videoHeight + 25; // Optimize top margin
+  let y = videoElement.videoHeight + 25; // Starting position
 
-  // Apply professional text shadow for better contrast on any background
+  // Apply professional text shadow for better contrast
   ctx.shadowColor = 'rgba(0, 0, 0, 0.7)';
   ctx.shadowBlur = 5;
   ctx.shadowOffsetX = 1.5;
   ctx.shadowOffsetY = 1.5;
   ctx.textAlign = 'left';
-  ctx.textBaseline = 'top'; // Ensures consistent text positioning
+  ctx.textBaseline = 'top';
 
-  // Title - Bold, title case for emphasis (instead of uppercase)
-  ctx.font = 'bold 38px Inter, system-ui, sans-serif'; // Increased size for better visibility
+  // Title - Bold, title case for emphasis
+  ctx.font = 'bold 38px Inter, system-ui, sans-serif';
   const title = caption.title 
     ? toTitleCase(caption.title) 
     : 'Untitled';
   ctx.fillText(title, 25, y);
-  y += 50; // Increased spacing after title for better visual hierarchy
-
-  // Reset shadow for body text (more subtle)
-  ctx.shadowBlur = 3;
-  ctx.shadowOffsetX = 1;
-  ctx.shadowOffsetY = 1;
+  y += 45;
 
   // Main caption text with improved readability
-  ctx.font = '26px Inter, system-ui, sans-serif'; // Slightly larger for better readability
+  ctx.font = '26px Inter, system-ui, sans-serif';
   const captionText = caption.caption || '';
 
   // Apply the wrapping with specified constraints
   const maxWidth = ctx.canvas.width - 50; // Leave margins on both sides
   const lineHeight = 32; // Increased line height for better readability
   y = wrapStandardText(ctx, captionText, 25, y, maxWidth, lineHeight);
-  y += 10; // Add a little extra space before CTA
+  y += 15; // Add extra space before CTA
 
-  // Draw CTA - MOVED BEFORE HASHTAGS
-  const cta = caption.cta || '';
-  
-  if (cta) {
+  // Draw CTA
+  if (caption.cta) {
     ctx.fillStyle = '#e2e8f0';  // Light color for CTA
-    ctx.font = '24px Inter, system-ui, sans-serif';
+    ctx.font = 'italic 24px Inter, system-ui, sans-serif';
     
     // Handle multi-line CTA if needed
-    const ctaLines = [];
-    let ctaLine = '';
-    const ctaWords = cta.split(' ');
-    
-    for (const word of ctaWords) {
-      const testLine = ctaLine + word + ' ';
-      const metrics = ctx.measureText(testLine);
-      if (metrics.width > ctx.canvas.width - 40) {
-        ctaLines.push(ctaLine.trim());
-        ctaLine = word + ' ';
-      } else {
-        ctaLine = testLine;
-      }
-    }
-    
-    // Add remaining line
-    if (ctaLine.trim()) {
-      ctaLines.push(ctaLine.trim());
-    }
-    
-    // Draw all CTA lines
-    for (const line of ctaLines) {
-      ctx.fillText(line, 20, y);
-      y += 30;
-    }
-    
-    y += 10; // Add space after CTA
+    y = wrapStandardText(ctx, caption.cta, 25, y, maxWidth, 30);
+    y += 20; // Add space after CTA
   }
 
-  // Draw hashtags
+  // Draw hashtags with improved visibility
   const hashtags = Array.isArray(caption.hashtags) ? caption.hashtags : [];
   
   if (hashtags.length > 0) {
     ctx.fillStyle = '#3b82f6';  // Blue color for hashtags
-    ctx.font = '22px Inter, system-ui, sans-serif';
-    const hashtagText = hashtags.map(tag => `#${tag}`).join(' ');
+    ctx.font = 'bold 22px Inter, system-ui, sans-serif';
     
-    // Handle long hashtag text
+    // Create hashtag text with # symbol
+    let hashtagsText = '';
     const hashtagLines = [];
-    let hashtagLine = '';
-    const hashtagWords = hashtagText.split(' ');
+    let currentLine = '';
     
-    for (const tag of hashtagWords) {
-      const testLine = hashtagLine + tag + ' ';
-      const metrics = ctx.measureText(testLine);
-      if (metrics.width > ctx.canvas.width - 40) {
-        hashtagLines.push(hashtagLine.trim());
-        hashtagLine = tag + ' ';
+    // Process hashtags to ensure they all fit
+    for (const tag of hashtags) {
+      const hashtagWithSymbol = `#${tag} `;
+      const testLine = currentLine + hashtagWithSymbol;
+      
+      if (ctx.measureText(testLine).width > maxWidth) {
+        hashtagLines.push(currentLine.trim());
+        currentLine = hashtagWithSymbol;
       } else {
-        hashtagLine = testLine;
+        currentLine = testLine;
       }
     }
     
-    // Add remaining line
-    if (hashtagLine.trim()) {
-      hashtagLines.push(hashtagLine.trim());
+    // Add the last line
+    if (currentLine.trim()) {
+      hashtagLines.push(currentLine.trim());
     }
     
-    // Draw all hashtag lines
+    // Draw each line of hashtags
     for (const line of hashtagLines) {
-      ctx.fillText(line, 20, y);
+      ctx.fillText(line, 25, y);
       y += 28;
     }
   }
@@ -380,36 +379,32 @@ function wrapStandardText(
   maxWidth: number,
   lineHeight: number
 ): number {
-  // Use a smoother method to split sentences (preserve punctuation)
-  const sentences = text.match(/[^.!?]+[.!?]+|\s*[^.!?]+$/g) || [];
-  let currentY: number = y;
+  // Split by words to handle wrapping properly
+  const words = text.split(' ');
+  let line = '';
+  let currentY = y;
   
-  for (const sentence of sentences) {
-    // Process each sentence
-    const words: string[] = sentence.split(' ');
-    let line: string = '';
+  // Process each word
+  for (const word of words) {
+    const testLine = line + word + ' ';
+    const metrics = context.measureText(testLine);
     
-    for (const word of words) {
-      const testLine: string = line + word + ' ';
-      const metrics: TextMetrics = context.measureText(testLine);
-      
-      if (metrics.width > maxWidth && line !== '') {
-        context.fillText(line.trim(), x, currentY);
-        line = word + ' ';
-        currentY += lineHeight;
-      } else {
-        line = testLine;
-      }
-    }
-    
-    // Draw the last line of the sentence if it's not empty
-    if (line.trim() !== '') {
+    if (metrics.width > maxWidth && line !== '') {
       context.fillText(line.trim(), x, currentY);
+      line = word + ' ';
       currentY += lineHeight;
+    } else {
+      line = testLine;
     }
   }
   
-  return currentY; // Return the new Y position
+  // Draw the last line
+  if (line.trim()) {
+    context.fillText(line.trim(), x, currentY);
+    currentY += lineHeight;
+  }
+  
+  return currentY; // Return the new Y position for next content
 }
 
 // Helper function to truncate text with ellipsis if too long
@@ -601,7 +596,7 @@ export const downloadPreview = async (
       }
       
       // Make sure video is loaded properly
-      if (video.readyState < 2) {
+      if (video.readyState < 2) { // HAVE_CURRENT_DATA or higher
         toast.loading('Waiting for video to load...', { id: loadingToastId });
         // Wait for video to be loaded enough to get dimensions
         await new Promise<void>((resolve) => {
