@@ -1,3 +1,4 @@
+
 import html2canvas from 'html2canvas';
 import { toast } from "sonner";
 import { getStorage, ref, uploadBytes, getDownloadURL } from 'firebase/storage';
@@ -606,7 +607,8 @@ export const downloadPreview = async (
       }
       
       // Make sure video is loaded properly
-      if (!video.readyState >= 2) {
+      // Fix the readyState check - must compare numeric value, not use >= with boolean
+      if (video.readyState < 2) {
         toast.loading('Waiting for video to load...', { id: loadingToastId });
         // Wait for video to be loaded enough to get dimensions
         await new Promise<void>((resolve) => {
