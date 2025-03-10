@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useRef } from 'react';
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
@@ -272,6 +271,7 @@ const GeneratedCaptions: React.FC<GeneratedCaptionsProps> = ({
               isEditing={isEditing}
               isSharing={isSharing}
               onShareClick={handleShareToSocial}
+              selectedPlatform={selectedPlatform}
             />
           </div>
         </div>
