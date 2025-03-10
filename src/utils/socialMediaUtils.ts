@@ -15,49 +15,78 @@ interface ShareResult {
   error?: string;
 }
 
+// Helper function to generate a Firebase-hosted URL for sharing
+const getFirebaseShareableUrl = async (mediaUrl: string | null, caption: any): Promise<string | null> => {
+  if (!mediaUrl) return null;
+  
+  try {
+    // First check if this is already a Firebase URL
+    if (mediaUrl.includes('firebasestorage.googleapis.com')) {
+      return mediaUrl;
+    }
+    
+    // Fetch the media
+    const response = await fetch(mediaUrl);
+    if (!response.ok) {
+      console.error('Failed to fetch media for Firebase upload');
+      return null;
+    }
+    
+    const blob = await response.blob();
+    const storage = getStorage();
+    const timestamp = Date.now();
+    const safeTitle = caption?.title ? caption.title.toLowerCase().replace(/[^\w]/g, '-') : 'share';
+    const fileName = `shared-media/${safeTitle}-${timestamp}.${blob.type.includes('video') ? 'mp4' : 'png'}`;
+    const storageRef = ref(storage, fileName);
+    
+    await uploadBytes(storageRef, blob);
+    return await getDownloadURL(storageRef);
+  } catch (error) {
+    console.error('Error preparing media for sharing:', error);
+    return null;
+  }
+};
+
 // Instagram API sharing function
 export const shareToInstagram = async (options: SharingOptions): Promise<ShareResult> => {
   try {
     const { caption, mediaType, mediaUrl } = options;
     
-    // Check if Instagram API credentials are available
-    const igApiKey = import.meta.env.VITE_INSTAGRAM_CLIENT_SECRET;
-    const igAccessToken = import.meta.env.VITE_INSTAGRAM_ACCESS_TOKEN;
-    const igAppId = import.meta.env.VITE_INSTAGRAM_APP_ID;
+    // First upload to Firebase to get a stable URL if needed
+    const shareableUrl = await getFirebaseShareableUrl(mediaUrl || null, caption);
     
-    if (!igApiKey || !igAccessToken) {
-      console.log('Missing Instagram API credentials');
+    // Format caption text
+    const formattedText = `${caption.title}\n\n${caption.caption}${caption.cta ? `\n\n${caption.cta}` : ''}${caption.hashtags?.length ? `\n\n${caption.hashtags.map((tag: string) => `#${tag}`).join(' ')}` : ''}`;
+    
+    // For Instagram, we directly open Instagram.com in mobile or the app intent on supported devices
+    const useNativeApp = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+    
+    if (useNativeApp && shareableUrl) {
+      // On mobile, try to use the app intent
+      window.location.href = `instagram://library?AssetPath=${encodeURIComponent(shareableUrl)}`;
       
-      // Attempt to open Instagram sharing in a new window if we can't use the API
-      if (mediaUrl && typeof window !== 'undefined') {
-        const instagramUrl = `https://www.instagram.com/share?url=${encodeURIComponent(mediaUrl)}`;
-        window.open(instagramUrl, '_blank', 'width=600,height=600');
-        return { 
-          success: true, 
-          message: 'Instagram sharing window opened' 
-        };
-      }
+      // Set a timeout to check if the app was opened
+      setTimeout(() => {
+        // Fall back to web if the app didn't open
+        window.open(`https://www.instagram.com/`, '_blank');
+      }, 2500);
       
       return { 
-        success: false, 
-        error: 'Instagram API credentials not configured.' 
+        success: true, 
+        message: 'Opening Instagram... Please complete sharing there.' 
+      };
+    } else {
+      // On desktop, open Instagram.com
+      window.open('https://www.instagram.com/', '_blank');
+      
+      // Try to copy the caption to clipboard for easy pasting
+      await navigator.clipboard.writeText(formattedText);
+      
+      return { 
+        success: true, 
+        message: 'Instagram opened. Caption copied to clipboard for pasting!' 
       };
     }
-    
-    if (!mediaUrl && mediaType !== 'text-only') {
-      return { success: false, error: 'Media URL is required for Instagram sharing' };
-    }
-    
-    console.log('Sharing to Instagram with:', { mediaType, captionTitle: caption?.title });
-    
-    // In a real implementation, you would make API calls to the Instagram Graph API
-    // For now, let's simulate a successful API call
-    // In production, you would use the FB Graph API: https://developers.facebook.com/docs/instagram-api/guides/content-publishing
-    
-    return { 
-      success: true, 
-      message: 'Shared to Instagram successfully' 
-    };
   } catch (error) {
     console.error('Instagram sharing error:', error);
     return { 
@@ -72,16 +101,15 @@ export const shareToTwitter = async (options: SharingOptions): Promise<ShareResu
   try {
     const { caption, mediaType, mediaUrl } = options;
     
-    // Check if Twitter API credentials are available
-    const twitterApiKey = import.meta.env.VITE_TWITTER_API_KEY;
-    const twitterAccessToken = import.meta.env.VITE_TWITTER_ACCESS_TOKEN;
+    // First upload to Firebase to get a stable URL if needed
+    const shareableUrl = await getFirebaseShareableUrl(mediaUrl || null, caption);
     
-    // For Twitter, we can fall back to the Twitter Web Intent URL
+    // For Twitter, we can use the Twitter Web Intent URL
     const text = `${caption.title}\n\n${caption.caption}\n${caption.hashtags.map(tag => `#${tag}`).join(' ')}`;
-    const twitterShareUrl = `https://twitter.com/intent/tweet?text=${encodeURIComponent(text)}`;
+    let twitterShareUrl = `https://twitter.com/intent/tweet?text=${encodeURIComponent(text)}`;
     
-    if (mediaUrl) {
-      twitterShareUrl + `&url=${encodeURIComponent(mediaUrl)}`;
+    if (shareableUrl) {
+      twitterShareUrl += `&url=${encodeURIComponent(shareableUrl)}`;
     }
     
     // Open Twitter share dialog
@@ -105,25 +133,20 @@ export const shareToFacebook = async (options: SharingOptions): Promise<ShareRes
   try {
     const { caption, mediaType, mediaUrl } = options;
     
-    // Check if Facebook API credentials are available
-    const fbApiKey = import.meta.env.VITE_FACEBOOK_API_KEY;
-    const fbAccessToken = import.meta.env.VITE_FACEBOOK_ACCESS_TOKEN;
+    // First upload to Firebase to get a stable URL if needed
+    const shareableUrl = await getFirebaseShareableUrl(mediaUrl || null, caption);
     
-    // For Facebook, we can fall back to the Facebook Sharer URL
-    let facebookShareUrl = 'https://www.facebook.com/sharer/sharer.php?';
-    
-    if (mediaUrl) {
-      facebookShareUrl += `u=${encodeURIComponent(mediaUrl)}`;
-    } else {
-      // If no media URL, share the caption text
+    // For Facebook, different sharing methods based on what we have
+    if (shareableUrl) {
+      // If we have media, share the URL with optional quote
       const text = `${caption.title}\n\n${caption.caption}`;
-      facebookShareUrl += `quote=${encodeURIComponent(text)}`;
+      const fbShareUrl = `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(shareableUrl)}&quote=${encodeURIComponent(text)}`;
+      window.open(fbShareUrl, '_blank', 'width=600,height=600');
+    } else {
+      // If no media, share just as a text feed post
+      const fbFeedUrl = `https://www.facebook.com/dialog/feed?app_id=${import.meta.env.VITE_FACEBOOK_APP_ID || '1602291440389010'}&display=popup&link=${encodeURIComponent(window.location.href)}&quote=${encodeURIComponent(`${caption.title}\n\n${caption.caption}`)}`;
+      window.open(fbFeedUrl, '_blank', 'width=600,height=600');
     }
-    
-    // Open Facebook share dialog
-    window.open(facebookShareUrl, '_blank', 'width=600,height=600');
-    
-    console.log('Shared to Facebook via web dialog');
     
     return { 
       success: true, 
@@ -143,21 +166,33 @@ export const shareToLinkedIn = async (options: SharingOptions): Promise<ShareRes
   try {
     const { caption, mediaType, mediaUrl } = options;
     
-    // Check if LinkedIn API credentials are available
-    const linkedinApiKey = import.meta.env.VITE_LINKEDIN_API_KEY;
-    const linkedinAccessToken = import.meta.env.VITE_LINKEDIN_ACCESS_TOKEN;
+    // First upload to Firebase to get a stable URL if needed
+    const shareableUrl = await getFirebaseShareableUrl(mediaUrl || null, caption);
     
-    // For LinkedIn, we can fall back to the LinkedIn Share URL
-    let linkedinShareUrl = 'https://www.linkedin.com/sharing/share-offsite/?';
+    // Create a shareable text
+    const shareText = `${caption.title}\n\n${caption.caption}${caption.cta ? `\n\n${caption.cta}` : ''}${caption.hashtags?.length ? `\n\n${caption.hashtags.map((tag: string) => `#${tag}`).join(' ')}` : ''}`;
     
-    if (mediaUrl) {
-      linkedinShareUrl += `url=${encodeURIComponent(mediaUrl)}`;
+    // LinkedIn requires a URL to share content
+    let linkedinShareUrl;
+    
+    if (shareableUrl) {
+      // If we have a Firebase URL for the media
+      linkedinShareUrl = `https://www.linkedin.com/sharing/share-offsite/?url=${encodeURIComponent(shareableUrl)}`;
+    } else {
+      // If we don't have media, share the current page with LinkedIn
+      linkedinShareUrl = `https://www.linkedin.com/sharing/share-offsite/?url=${encodeURIComponent(window.location.href)}`;
+      
+      // Try to copy the text to clipboard for easy pasting
+      try {
+        await navigator.clipboard.writeText(shareText);
+        toast.info('Caption copied to clipboard! You can paste it in LinkedIn.');
+      } catch (err) {
+        console.warn('Could not copy text to clipboard:', err);
+      }
     }
     
     // Open LinkedIn share dialog
     window.open(linkedinShareUrl, '_blank', 'width=600,height=600');
-    
-    console.log('Shared to LinkedIn via web dialog');
     
     return { 
       success: true, 
@@ -178,9 +213,17 @@ export const shareToTikTok = async (options: SharingOptions): Promise<ShareResul
     const { caption, mediaType, mediaUrl } = options;
     
     // TikTok doesn't have a standard web share URL like other platforms
-    // We'll need to use their SDK or API in a real implementation
+    // Try to copy caption to clipboard for convenience
+    const shareText = `${caption.title}\n\n${caption.caption}${caption.cta ? `\n\n${caption.cta}` : ''}${caption.hashtags?.length ? `\n\n${caption.hashtags.map((tag: string) => `#${tag}`).join(' ')}` : ''}`;
     
-    // As a fallback, we can direct users to the TikTok app or website
+    try {
+      await navigator.clipboard.writeText(shareText);
+      toast.info('Caption copied to clipboard! You can paste it in TikTok.');
+    } catch (err) {
+      console.warn('Could not copy text to clipboard:', err);
+    }
+    
+    // Direct users to TikTok upload page
     toast.info('Opening TikTok. Please upload your media there.');
     window.open('https://www.tiktok.com/upload', '_blank');
     
@@ -209,7 +252,16 @@ export const shareToYouTube = async (options: SharingOptions): Promise<ShareResu
       };
     }
     
-    // YouTube doesn't have a standard web share URL for uploading
+    // Try to copy caption to clipboard for convenience
+    const shareText = `${caption.title}\n\n${caption.caption}${caption.cta ? `\n\n${caption.cta}` : ''}${caption.hashtags?.length ? `\n\n${caption.hashtags.map((tag: string) => `#${tag}`).join(' ')}` : ''}`;
+    
+    try {
+      await navigator.clipboard.writeText(shareText);
+      toast.info('Video title and description copied to clipboard! You can paste it in YouTube.');
+    } catch (err) {
+      console.warn('Could not copy text to clipboard:', err);
+    }
+    
     // Direct users to YouTube Studio
     toast.info('Opening YouTube Studio. Please upload your video there.');
     window.open('https://studio.youtube.com/channel/upload', '_blank');

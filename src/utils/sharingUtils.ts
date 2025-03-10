@@ -440,12 +440,16 @@ export const sharePreview = async (
   if (!previewRef.current) throw new Error('Preview element not found');
 
   try {
+    console.log("Starting share process for media type:", mediaType);
+    
     // Target the sharable-content element instead of preview-content
     const sharableContent = previewRef.current.querySelector('#sharable-content');
     if (!sharableContent) throw new Error('Sharable content not found');
-
+    
     // Format the caption text properly
-    const formattedCaption = `${caption.title}\n\n${caption.caption}\n\n${caption.cta}\n\n${caption.hashtags.map(tag => `#${tag}`).join(' ')}`;    
+    const formattedCaption = `${caption.title}\n\n${caption.caption}\n\n${caption.cta}\n\n${caption.hashtags.map(tag => `#${tag}`).join(' ')}`;
+    console.log("Formatted caption ready for sharing");
+    
     // Create basic share data
     const shareData: ShareData = {
       title: caption.title,
@@ -454,6 +458,8 @@ export const sharePreview = async (
 
     // Check if Web Share API is available
     if (navigator.share) {
+      console.log("Web Share API is available");
+      
       // Handle different media types for file sharing
       if (mediaType !== 'text-only' && navigator.canShare) {
         try {
@@ -463,17 +469,24 @@ export const sharePreview = async (
           const loadingToastId = toast.loading('Preparing media for sharing...');
           
           if (mediaType === 'video') {
+            console.log("Preparing video for sharing");
             // For video content, we need to capture the processed video with captions
             const video = sharableContent.querySelector('video');
             if (video && video.src) {
               try {
                 // Create captioned video with caption overlay
                 const captionedVideoBlob = await createCaptionedVideo(video, caption);
+                console.log("Captioned video created successfully:", captionedVideoBlob.size, "bytes");
                 
                 // Create a file from the blob
                 mediaFile = new File([captionedVideoBlob], `video-${Date.now()}.webm`, { 
                   type: 'video/webm' 
                 });
+                
+                // Upload to Firebase to get a stable URL for sharing
+                const mediaUrl = await uploadToFirebase(captionedVideoBlob, caption, 'video');
+                shareData.url = mediaUrl;
+                
                 console.log('Prepared captioned video for sharing:', mediaFile.size, 'bytes');
               } catch (videoProcessingError) {
                 console.error('Error processing video for sharing:', videoProcessingError);
@@ -485,9 +498,14 @@ export const sharePreview = async (
                 mediaFile = new File([blob], `video-${Date.now()}.mp4`, { 
                   type: blob.type || 'video/mp4' 
                 });
+                
+                // Upload to Firebase for stable URL
+                const mediaUrl = await uploadToFirebase(blob, caption, 'video');
+                shareData.url = mediaUrl;
               }
             }
           } else if (mediaType === 'image') {
+            console.log("Preparing image for sharing");
             // For image content, capture the entire content including caption
             const canvas = await html2canvas(sharableContent as HTMLElement, {
               useCORS: true,
@@ -513,6 +531,11 @@ export const sharePreview = async (
             mediaFile = new File([blob], `image-${Date.now()}.png`, { 
               type: 'image/png' 
             });
+            
+            // Upload to Firebase for stable URL
+            const mediaUrl = await uploadToFirebase(blob, caption, 'image');
+            shareData.url = mediaUrl;
+            console.log("Image prepared for sharing with URL:", shareData.url);
           }
           
           // Dismiss loading indicator
@@ -520,10 +543,20 @@ export const sharePreview = async (
           
           // Try to share with the media file
           if (mediaFile && navigator.canShare({ files: [mediaFile] })) {
+            console.log("Sharing with media file:", mediaFile.name);
             await navigator.share({
               ...shareData,
               files: [mediaFile]
             });
+            
+            return { 
+              status: 'shared', 
+              message: 'Content shared successfully!' 
+            };
+          } else if (shareData.url) {
+            // If we can't share the file directly, try with the URL
+            console.log("Sharing with URL:", shareData.url);
+            await navigator.share(shareData);
             
             return { 
               status: 'shared', 
@@ -537,6 +570,7 @@ export const sharePreview = async (
       }
       
       // Text-only sharing as fallback
+      console.log("Falling back to text-only sharing");
       await navigator.share(shareData);
       return { status: 'shared', message: 'Caption shared successfully!' };
     } else {
@@ -807,4 +841,3 @@ function toTitleCase(text: string): string {
     })
     .join(' ');
 }
-

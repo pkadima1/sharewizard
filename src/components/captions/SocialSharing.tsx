@@ -1,5 +1,5 @@
 
-import React from 'react';
+import React, { useState } from 'react';
 import { Button } from "@/components/ui/button";
 import { Share, Instagram, Facebook, Twitter, Linkedin, Youtube, Music } from 'lucide-react';
 import { toast } from "sonner";
@@ -22,13 +22,17 @@ const SocialSharing: React.FC<SocialSharingProps> = ({
   onShareClick,
   selectedPlatform = '',
   caption,
-  mediaType = 'text-only', // Default to text-only to satisfy TypeScript
+  mediaType = 'text-only',
   previewUrl
 }) => {
+  const [platformLoading, setPlatformLoading] = useState<string | null>(null);
+  
   if (isEditing) return null;
 
   const handleDirectShare = async (platform: string) => {
     try {
+      // Set loading state for this specific platform
+      setPlatformLoading(platform);
       toast.info(`Preparing to share on ${platform}...`);
       
       // If we're trying to share directly to a social platform
@@ -43,6 +47,7 @@ const SocialSharing: React.FC<SocialSharingProps> = ({
         if (result.success) {
           toast.success(result.message || `Shared to ${platform} successfully!`);
           console.log(`Shared to ${platform} via API`);
+          setPlatformLoading(null);
           return;
         } else if (result.error) {
           // If direct API sharing fails, fall back to browser sharing
@@ -54,10 +59,12 @@ const SocialSharing: React.FC<SocialSharingProps> = ({
       // Fall back to browser sharing with both text and media
       onShareClick();
       console.log(`Shared via browser share API`);
+      setPlatformLoading(null);
     } catch (error) {
       console.error(`Error sharing to ${platform}:`, error);
       toast.error(`Failed to share to ${platform}. Trying browser sharing instead.`);
       onShareClick();
+      setPlatformLoading(null);
     }
   };
 
@@ -85,9 +92,9 @@ const SocialSharing: React.FC<SocialSharingProps> = ({
         <Button
           className={`w-full text-white ${selectedPlatformDetails.color} mb-2`}
           onClick={() => handleDirectShare(selectedPlatformDetails.name)}
-          disabled={isSharing}
+          disabled={isSharing || platformLoading === selectedPlatformDetails.name}
         >
-          {isSharing ? (
+          {platformLoading === selectedPlatformDetails.name ? (
             <div className="h-4 w-4 border-t-2 border-r-2 border-white rounded-full animate-spin mr-2"></div>
           ) : (
             <selectedPlatformDetails.icon className="h-4 w-4 mr-2" />
@@ -100,9 +107,9 @@ const SocialSharing: React.FC<SocialSharingProps> = ({
       <Button
         className="w-full bg-purple-600 hover:bg-purple-700 text-white"
         onClick={() => handleDirectShare('Browser')}
-        disabled={isSharing}
+        disabled={isSharing || platformLoading === 'Browser'}
       >
-        {isSharing ? (
+        {platformLoading === 'Browser' ? (
           <div className="h-4 w-4 border-t-2 border-r-2 border-white rounded-full animate-spin mr-2"></div>
         ) : (
           <Share className="h-4 w-4 mr-2" />
@@ -126,8 +133,13 @@ const SocialSharing: React.FC<SocialSharingProps> = ({
               size="sm" 
               className="w-full" 
               onClick={() => handleDirectShare(platform.name)}
+              disabled={platformLoading === platform.name}
             >
-              <platform.icon className="h-4 w-4 mr-1" />
+              {platformLoading === platform.name ? (
+                <div className="h-4 w-4 border-t-2 border-r-2 border-blue-500 rounded-full animate-spin mr-1"></div>
+              ) : (
+                <platform.icon className="h-4 w-4 mr-1" />
+              )}
               {platform.name}
             </Button>
           );

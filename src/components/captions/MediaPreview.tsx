@@ -1,5 +1,5 @@
 
-import React, { forwardRef, useRef } from 'react';
+import React, { forwardRef, useRef, useEffect } from 'react';
 import { Switch } from "@/components/ui/switch";
 import { Button } from "@/components/ui/button";
 import { Edit, Share, Download } from 'lucide-react';
@@ -37,6 +37,13 @@ const MediaPreview = forwardRef<HTMLDivElement, MediaPreviewProps>(({
   isEditing
 }, ref) => {
   const videoRef = useRef<HTMLVideoElement>(null);
+  
+  // Ensure videos have crossOrigin attribute set for sharing
+  useEffect(() => {
+    if (videoRef.current) {
+      videoRef.current.crossOrigin = "anonymous";
+    }
+  }, [previewUrl]);
 
   const handleToggleOverlayMode = () => {
     onCaptionOverlayModeChange(captionOverlayMode === 'overlay' ? 'below' : 'overlay');
@@ -104,7 +111,8 @@ const MediaPreview = forwardRef<HTMLDivElement, MediaPreviewProps>(({
                     <img 
                       src={previewUrl} 
                       alt="Preview" 
-                      className="w-full h-full object-cover" 
+                      className="w-full h-full object-cover"
+                      crossOrigin="anonymous"
                     />
                     {captionOverlayMode === 'overlay' && currentCaption && (
                       <div className="absolute bottom-0 left-0 right-0 bg-black bg-opacity-70 p-4 backdrop-blur-sm">
@@ -128,6 +136,7 @@ const MediaPreview = forwardRef<HTMLDivElement, MediaPreviewProps>(({
                       src={previewUrl} 
                       className="w-full h-full object-cover" 
                       controls
+                      crossOrigin="anonymous"
                     />
                     {captionOverlayMode === 'overlay' && currentCaption && (
                       <div className="absolute bottom-0 left-0 right-0 bg-black bg-opacity-70 p-4 backdrop-blur-sm">
