@@ -11,10 +11,12 @@ export interface Caption {
 
 export type CaptionStyle = 'standard' | 'handwritten';
 
-// Add a more specific interface for download options
+// Enhanced download options for better video quality
 export interface DownloadOptions {
-  quality?: number;
+  quality?: 'low' | 'medium' | 'high' | 'ultra'; // Quality presets
+  videoBitrate?: number; // Explicit bitrate control in bps
   fileName?: string;
   includeCaption?: boolean;
   captionStyle?: CaptionStyle;
+  format?: 'webm' | 'mp4' | 'png' | 'jpg'; // Output format options
 }

@@ -1,7 +1,8 @@
+
 import html2canvas from 'html2canvas';
 import { toast } from "sonner";
 import { getStorage, ref, uploadBytes, getDownloadURL } from 'firebase/storage';
-import { MediaType, Caption, CaptionStyle } from '@/types/mediaTypes';
+import { MediaType, Caption, CaptionStyle, DownloadOptions } from '@/types/mediaTypes';
 
 // Helper function to create video with caption overlay
 export const createCaptionedVideo = async (
@@ -34,6 +35,7 @@ export const createCaptionedVideo = async (
       originalVideo.crossOrigin = 'anonymous';
       originalVideo.muted = false;
       originalVideo.volume = 1.0;
+      originalVideo.playsInline = true; // Add playsInline for better compatibility
 
       // Progress tracking for long videos
       let toastId: string | number | undefined;
@@ -44,7 +46,7 @@ export const createCaptionedVideo = async (
         }
 
         // Create media stream from canvas
-        const canvasStream = canvas.captureStream();
+        const canvasStream = canvas.captureStream(30); // Specify 30fps for better quality
         let combinedStream: MediaStream;
 
         try {
@@ -60,17 +62,26 @@ export const createCaptionedVideo = async (
           combinedStream = canvasStream;
         }
 
+        // Use higher quality encoding settings
         const recorderOptions = {
-          mimeType: 'video/webm;codecs=vp8,opus',
-          videoBitsPerSecond: 2500000
+          mimeType: 'video/webm;codecs=vp9,opus', // Use VP9 for better quality
+          videoBitsPerSecond: 5000000 // Increase bitrate for better quality (5 Mbps)
         };
 
         let mediaRecorder: MediaRecorder;
         try {
           mediaRecorder = new MediaRecorder(combinedStream, recorderOptions);
         } catch (e) {
-          console.warn('Preferred codec not supported, using default:', e);
-          mediaRecorder = new MediaRecorder(combinedStream);
+          console.warn('Preferred codec not supported, trying vp8:', e);
+          try {
+            mediaRecorder = new MediaRecorder(combinedStream, {
+              mimeType: 'video/webm;codecs=vp8,opus',
+              videoBitsPerSecond: 4000000
+            });
+          } catch (e2) {
+            console.warn('Falling back to default codec:', e2);
+            mediaRecorder = new MediaRecorder(combinedStream);
+          }
         }
 
         const chunks: Blob[] = [];
@@ -183,19 +194,19 @@ function drawHandwrittenOverlay(
   // Word wrap for caption text
   wrapHandwrittenText(ctx, captionText, width / 2, height / 2, width * 0.8, 40);
   
-  // CTA and hashtags at bottom
+  // CTA at bottom - MOVED BEFORE HASHTAGS
+  if (caption.cta) {
+    ctx.font = '26px "Segoe Script", "Brush Script MT", "Comic Sans MS", cursive';
+    ctx.fillStyle = '#e2e8f0'; // Light color for CTA
+    ctx.fillText(truncateText(caption.cta, ctx, width * 0.9), width / 2, height * 0.82);
+  }
+  
+  // Hashtags at the very bottom
   if (caption.hashtags && caption.hashtags.length > 0) {
     ctx.font = '28px "Segoe Script", "Brush Script MT", "Comic Sans MS", cursive';
     ctx.fillStyle = '#3b82f6'; // Blue for hashtags
     const hashtagText = caption.hashtags.map(tag => `#${tag}`).join(' ');
-    ctx.fillText(truncateText(hashtagText, ctx, width * 0.9), width / 2, height * 0.85);
-  }
-  
-  // CTA with subtle styling
-  if (caption.cta) {
-    ctx.font = '26px "Segoe Script", "Brush Script MT", "Comic Sans MS", cursive';
-    ctx.fillStyle = '#e2e8f0'; // Light color for CTA
-    ctx.fillText(truncateText(caption.cta, ctx, width * 0.9), width / 2, height * 0.92);
+    ctx.fillText(truncateText(hashtagText, ctx, width * 0.9), width / 2, height * 0.92);
   }
 }
 
@@ -243,13 +254,51 @@ function drawStandardCaption(
   const maxWidth = ctx.canvas.width - 50; // Leave margins on both sides
   const lineHeight = 32; // Increased line height for better readability
   y = wrapStandardText(ctx, captionText, 25, y, maxWidth, lineHeight);
-  y += 10; // Add a little extra space before hashtags
+  y += 10; // Add a little extra space before CTA
+
+  // Draw CTA - MOVED BEFORE HASHTAGS
+  const cta = caption.cta || '';
+  
+  if (cta) {
+    ctx.fillStyle = '#e2e8f0';  // Light color for CTA
+    ctx.font = '24px Inter, system-ui, sans-serif';
+    
+    // Handle multi-line CTA if needed
+    const ctaLines = [];
+    let ctaLine = '';
+    const ctaWords = cta.split(' ');
+    
+    for (const word of ctaWords) {
+      const testLine = ctaLine + word + ' ';
+      const metrics = ctx.measureText(testLine);
+      if (metrics.width > ctx.canvas.width - 40) {
+        ctaLines.push(ctaLine.trim());
+        ctaLine = word + ' ';
+      } else {
+        ctaLine = testLine;
+      }
+    }
+    
+    // Add remaining line
+    if (ctaLine.trim()) {
+      ctaLines.push(ctaLine.trim());
+    }
+    
+    // Draw all CTA lines
+    for (const line of ctaLines) {
+      ctx.fillText(line, 20, y);
+      y += 30;
+    }
+    
+    y += 10; // Add space after CTA
+  }
 
   // Draw hashtags
   const hashtags = Array.isArray(caption.hashtags) ? caption.hashtags : [];
   
   if (hashtags.length > 0) {
     ctx.fillStyle = '#3b82f6';  // Blue color for hashtags
+    ctx.font = '22px Inter, system-ui, sans-serif';
     const hashtagText = hashtags.map(tag => `#${tag}`).join(' ');
     
     // Handle long hashtag text
@@ -276,43 +325,7 @@ function drawStandardCaption(
     // Draw all hashtag lines
     for (const line of hashtagLines) {
       ctx.fillText(line, 20, y);
-      y += 25;
-    }
-  } else {
-    y += 5; // Still add some space even if no hashtags
-  }
-
-  // CTA
-  const cta = caption.cta || '';
-  
-  if (cta) {
-    ctx.fillStyle = '#9ca3af';  // Gray color for CTA
-    
-    // Handle multi-line CTA if needed
-    const ctaLines = [];
-    let ctaLine = '';
-    const ctaWords = cta.split(' ');
-    
-    for (const word of ctaWords) {
-      const testLine = ctaLine + word + ' ';
-      const metrics = ctx.measureText(testLine);
-      if (metrics.width > ctx.canvas.width - 40) {
-        ctaLines.push(ctaLine.trim());
-        ctaLine = word + ' ';
-      } else {
-        ctaLine = testLine;
-      }
-    }
-    
-    // Add remaining line
-    if (ctaLine.trim()) {
-      ctaLines.push(ctaLine.trim());
-    }
-    
-    // Draw all CTA lines
-    for (const line of ctaLines) {
-      ctx.fillText(line, 20, y);
-      y += 25;
+      y += 28;
     }
   }
 }
@@ -367,32 +380,33 @@ function wrapStandardText(
   maxWidth: number,
   lineHeight: number
 ): number {
-  const words: string[] = text.split(' ');
-  let line: string = '';
+  // Use a smoother method to split sentences (preserve punctuation)
+  const sentences = text.match(/[^.!?]+[.!?]+|\s*[^.!?]+$/g) || [];
   let currentY: number = y;
   
-  for (const word of words) {
-    const testLine: string = line + word + ' ';
-    const metrics: TextMetrics = context.measureText(testLine);
+  for (const sentence of sentences) {
+    // Process each sentence
+    const words: string[] = sentence.split(' ');
+    let line: string = '';
     
-    if (metrics.width > maxWidth && line !== '') {
-      context.fillText(line.trim(), x, currentY);
-      line = word + ' ';
-      currentY += lineHeight;
+    for (const word of words) {
+      const testLine: string = line + word + ' ';
+      const metrics: TextMetrics = context.measureText(testLine);
       
-      // Safety check: Reduce font if we're running out of space
-      if (currentY > y + 150) {
-        context.font = '20px Inter, system-ui, sans-serif';
+      if (metrics.width > maxWidth && line !== '') {
+        context.fillText(line.trim(), x, currentY);
+        line = word + ' ';
+        currentY += lineHeight;
+      } else {
+        line = testLine;
       }
-    } else {
-      line = testLine;
     }
-  }
-  
-  // Draw the last line if it's not empty
-  if (line.trim() !== '') {
-    context.fillText(line.trim(), x, currentY);
-    currentY += lineHeight;
+    
+    // Draw the last line of the sentence if it's not empty
+    if (line.trim() !== '') {
+      context.fillText(line.trim(), x, currentY);
+      currentY += lineHeight;
+    }
   }
   
   return currentY; // Return the new Y position
@@ -587,7 +601,6 @@ export const downloadPreview = async (
       }
       
       // Make sure video is loaded properly
-      // Fix the readyState check - must compare numeric value, not use >= with boolean
       if (video.readyState < 2) {
         toast.loading('Waiting for video to load...', { id: loadingToastId });
         // Wait for video to be loaded enough to get dimensions
