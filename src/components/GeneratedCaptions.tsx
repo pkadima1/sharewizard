@@ -272,6 +272,9 @@ const GeneratedCaptions: React.FC<GeneratedCaptionsProps> = ({
               isSharing={isSharing}
               onShareClick={handleShareToSocial}
               selectedPlatform={selectedPlatform}
+              caption={captions[selectedCaption]}
+              mediaType={mediaType}
+              previewUrl={previewUrl}
             />
           </div>
         </div>

@@ -3,29 +3,61 @@ import React from 'react';
 import { Button } from "@/components/ui/button";
 import { Share, Instagram, Facebook, Twitter, Linkedin, Youtube, Music } from 'lucide-react';
 import { toast } from "sonner";
+import { shareToPlatform } from '@/utils/socialMediaUtils';
 
 interface SocialSharingProps {
   isEditing: boolean;
   isSharing: boolean;
   onShareClick: () => void;
   selectedPlatform?: string;
+  caption?: any;
+  mediaType?: string;
+  previewUrl?: string | null;
 }
 
 const SocialSharing: React.FC<SocialSharingProps> = ({
   isEditing,
   isSharing,
   onShareClick,
-  selectedPlatform = ''
+  selectedPlatform = '',
+  caption,
+  mediaType,
+  previewUrl
 }) => {
   if (isEditing) return null;
 
-  const handleDirectShare = (platform: string) => {
-    toast.info(`Preparing to share on ${platform}...`);
-    // First run the browser share, which will generate the image/video
-    onShareClick();
-
-    // Track the specific platform share
-    console.log(`Shared to ${platform}`);
+  const handleDirectShare = async (platform: string) => {
+    try {
+      toast.info(`Preparing to share on ${platform}...`);
+      
+      // If we're trying to share directly to a social platform
+      if (platform.toLowerCase() !== 'browser') {
+        // First try the direct API sharing
+        const result = await shareToPlatform(platform.toLowerCase(), {
+          caption,
+          mediaType,
+          mediaUrl: previewUrl
+        });
+        
+        if (result.success) {
+          toast.success(result.message || `Shared to ${platform} successfully!`);
+          console.log(`Shared to ${platform} via API`);
+          return;
+        } else if (result.error) {
+          // If direct API sharing fails, fall back to browser sharing
+          console.warn(`Direct ${platform} sharing failed: ${result.error}`);
+          toast.warning(`Direct ${platform} sharing unavailable. Falling back to browser sharing.`);
+        }
+      }
+      
+      // Fall back to browser sharing
+      onShareClick();
+      console.log(`Shared via browser share API`);
+    } catch (error) {
+      console.error(`Error sharing to ${platform}:`, error);
+      toast.error(`Failed to share to ${platform}. Trying browser sharing instead.`);
+      onShareClick();
+    }
   };
 
   // Define platform icons and details
@@ -66,7 +98,7 @@ const SocialSharing: React.FC<SocialSharingProps> = ({
       {/* Fallback browser sharing option */}
       <Button
         className="w-full bg-purple-600 hover:bg-purple-700 text-white"
-        onClick={onShareClick}
+        onClick={() => handleDirectShare('Browser')}
         disabled={isSharing}
       >
         {isSharing ? (

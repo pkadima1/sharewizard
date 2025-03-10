@@ -16,7 +16,7 @@ export const useMediaType = (
   if (selectedMedia.type.startsWith('video/')) return 'video';
   
   // If media type couldn't be determined, default to text-only
-  console.log('Media type could not be determined, defaulting to text-only');
+  console.log('Media type could not be determined, defaulting to text-only', selectedMedia.type);
   return 'text-only';
 };
 
