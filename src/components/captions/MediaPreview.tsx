@@ -1,5 +1,5 @@
 
-import React, { useRef } from 'react';
+import React, { forwardRef, useRef } from 'react';
 import { Switch } from "@/components/ui/switch";
 import { Button } from "@/components/ui/button";
 import { Edit, Share, Download } from 'lucide-react';
@@ -22,7 +22,7 @@ interface MediaPreviewProps {
   isEditing: boolean;
 }
 
-const MediaPreview: React.FC<MediaPreviewProps> = ({
+const MediaPreview = forwardRef<HTMLDivElement, MediaPreviewProps>(({
   previewUrl,
   selectedMedia,
   captionOverlayMode,
@@ -35,8 +35,7 @@ const MediaPreview: React.FC<MediaPreviewProps> = ({
   isSharing,
   isDownloading,
   isEditing
-}) => {
-  const previewRef = useRef<HTMLDivElement>(null);
+}, ref) => {
   const videoRef = useRef<HTMLVideoElement>(null);
 
   const handleToggleOverlayMode = () => {
@@ -94,7 +93,7 @@ const MediaPreview: React.FC<MediaPreviewProps> = ({
         </div>
         
         <div 
-          ref={previewRef}
+          ref={ref}
           className="rounded-md overflow-hidden bg-white dark:bg-gray-900"
         >
           <div id="sharable-content" className={isTextOnly ? 'p-6' : ''}>
@@ -188,6 +187,8 @@ const MediaPreview: React.FC<MediaPreviewProps> = ({
       </div>
     </div>
   );
-};
+});
+
+MediaPreview.displayName = 'MediaPreview';
 
 export default MediaPreview;

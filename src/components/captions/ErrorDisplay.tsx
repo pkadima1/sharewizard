@@ -2,6 +2,7 @@
 import React from 'react';
 import { Button } from "@/components/ui/button";
 import { AlertCircle } from 'lucide-react';
+import { toast } from "sonner";
 
 interface ErrorDisplayProps {
   error: string;
@@ -12,6 +13,11 @@ const ErrorDisplay: React.FC<ErrorDisplayProps> = ({
   error,
   onTryAgainClick
 }) => {
+  const handleTryAgain = () => {
+    toast.info("Attempting to generate captions again...");
+    onTryAgainClick();
+  };
+
   return (
     <div className="flex flex-col items-center justify-center p-8 text-center">
       <div className="bg-red-50 dark:bg-red-900/20 w-16 h-16 rounded-full flex items-center justify-center mb-4">
@@ -27,7 +33,7 @@ const ErrorDisplay: React.FC<ErrorDisplayProps> = ({
           Start Over
         </Button>
         <Button
-          onClick={onTryAgainClick}
+          onClick={handleTryAgain}
         >
           Try Again
         </Button>

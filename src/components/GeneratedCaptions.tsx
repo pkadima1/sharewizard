@@ -8,7 +8,7 @@ import { sharePreview, downloadPreview } from '@/utils/sharingUtils';
 import { CaptionStyle, MediaType } from '@/types/mediaTypes';
 import useMediaType from '@/hooks/useMediaType';
 
-// Import our new components
+// Import our components
 import CaptionsList from './captions/CaptionsList';
 import CaptionEditForm from './captions/CaptionEditForm';
 import MediaPreview from './captions/MediaPreview';
@@ -108,7 +108,11 @@ const GeneratedCaptions: React.FC<GeneratedCaptionsProps> = ({
   };
 
   const handleDownload = async () => {
-    if (!previewRef.current) return;
+    if (!previewRef.current) {
+      toast.error("Preview container not found. Please try again.");
+      console.error("Preview ref is null:", previewRef.current);
+      return;
+    }
     
     try {
       setIsDownloading(true);
@@ -141,7 +145,16 @@ const GeneratedCaptions: React.FC<GeneratedCaptionsProps> = ({
   };
 
   const handleShareToSocial = async () => {
-    if (!captions[selectedCaption]) return;
+    if (!previewRef.current) {
+      toast.error("Preview container not found. Please try again.");
+      console.error("Preview ref is null:", previewRef.current);
+      return;
+    }
+    
+    if (!captions[selectedCaption]) {
+      toast.error("No caption selected to share");
+      return;
+    }
     
     try {
       setIsSharing(true);
@@ -220,7 +233,7 @@ const GeneratedCaptions: React.FC<GeneratedCaptionsProps> = ({
       </div>
       
       <div className="flex flex-col lg:flex-row gap-6">
-        <div className="lg:w-3/5">
+        <div className="lg:w-2/5">
           <CaptionsList 
             captions={captions}
             selectedCaption={selectedCaption}
@@ -228,7 +241,7 @@ const GeneratedCaptions: React.FC<GeneratedCaptionsProps> = ({
           />
         </div>
         
-        <div className="lg:w-2/5">
+        <div className="lg:w-3/5">
           <div className="sticky top-6 space-y-4">
             {isEditing ? (
               <CaptionEditForm 
@@ -239,6 +252,7 @@ const GeneratedCaptions: React.FC<GeneratedCaptionsProps> = ({
               />
             ) : (
               <MediaPreview 
+                ref={previewRef}
                 previewUrl={previewUrl}
                 selectedMedia={selectedMedia}
                 captionOverlayMode={captionOverlayMode}

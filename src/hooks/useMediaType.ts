@@ -6,8 +6,9 @@ export const useMediaType = (
   selectedMedia: File | null
 ): MediaType => {
   if (isTextOnly) return 'text-only';
-  if (selectedMedia?.type.startsWith('image')) return 'image';
-  if (selectedMedia?.type.startsWith('video')) return 'video';
+  if (!selectedMedia) return 'text-only';
+  if (selectedMedia.type.startsWith('image')) return 'image';
+  if (selectedMedia.type.startsWith('video')) return 'video';
   return 'text-only';
 };
 

@@ -2,6 +2,7 @@
 import React from 'react';
 import { Button } from "@/components/ui/button";
 import { Share, Instagram, Facebook, Twitter } from 'lucide-react';
+import { toast } from "sonner";
 
 interface SocialSharingProps {
   isEditing: boolean;
@@ -15,6 +16,12 @@ const SocialSharing: React.FC<SocialSharingProps> = ({
   onShareClick
 }) => {
   if (isEditing) return null;
+
+  const handleDirectShare = (platform: string) => {
+    toast.info(`Preparing to share on ${platform}...`);
+    // First run the browser share, which will generate the image/video
+    onShareClick();
+  };
 
   return (
     <div className="space-y-3">
@@ -37,15 +44,15 @@ const SocialSharing: React.FC<SocialSharingProps> = ({
       </div>
       
       <div className="grid grid-cols-3 gap-2">
-        <Button variant="outline" size="sm" className="w-full">
+        <Button variant="outline" size="sm" className="w-full" onClick={() => handleDirectShare('Instagram')}>
           <Instagram className="h-4 w-4 mr-1" />
           Instagram
         </Button>
-        <Button variant="outline" size="sm" className="w-full">
+        <Button variant="outline" size="sm" className="w-full" onClick={() => handleDirectShare('Facebook')}>
           <Facebook className="h-4 w-4 mr-1" />
           Facebook
         </Button>
-        <Button variant="outline" size="sm" className="w-full">
+        <Button variant="outline" size="sm" className="w-full" onClick={() => handleDirectShare('Twitter')}>
           <Twitter className="h-4 w-4 mr-1" />
           Twitter
         </Button>
