@@ -603,103 +603,75 @@ export const downloadPreview = async (
         throw new Error('Video element not found');
       }
       
-      // Ensure the video is loaded
-      if (video.readyState < 2) { // HAVE_CURRENT_DATA or higher
-        await new Promise<void>((resolve) => {
-          const handleLoadedData = () => {
-            video.removeEventListener('loadeddata', handleLoadedData);
-            resolve();
-          };
-          video.addEventListener('loadeddata', handleLoadedData);
-          
-          // Set a timeout in case the video doesn't load
-          setTimeout(() => {
-            video.removeEventListener('loadeddata', handleLoadedData);
-            resolve(); // Continue anyway
-          }, 3000);
-        });
-      }
-
-      // Create video with selected caption style
-      toast.loading(`Creating video with ${captionStyle} style...`, { id: loadingToastId });
-      
+      // Handle the video download more directly
       try {
         if (!video.src) {
           throw new Error('Video source not available');
         }
         
-        // Pass the caption style to createCaptionedVideo
-        const captionedBlob = await createCaptionedVideo(video, caption, captionStyle);
+        toast.loading(`Preparing video download...`, { id: loadingToastId });
         
-        // Use a more reliable download method
-        downloadBlobAsFile(
-          captionedBlob, 
-          filename || `${defaultFilename}.webm`,
-          loadingToastId,
-          `Video with ${captionStyle} captions downloaded!`
-        );
-      } catch (captionError) {
-        console.error('Error creating captioned video:', captionError);
-        toast.error('Failed to create captioned video, downloading original instead', { id: loadingToastId });
-        
-        // Fallback to original video, still using title-based filename
-        if (video.src) {
-          try {
-            const response = await fetch(video.src);
-            if (response.ok) {
-              const blob = await response.blob();
-              downloadBlobAsFile(
-                blob, 
-                filename || `${defaultFilename}-original.mp4`,
-                loadingToastId,
-                'Original video downloaded successfully!'
-              );
-            } else {
-              throw new Error(`Failed to fetch video: ${response.status}`);
-            }
-          } catch (fetchError) {
-            console.error('Error fetching video:', fetchError);
-            toast.error('Failed to download video', { id: loadingToastId });
-            throw fetchError;
-          }
-        } else {
-          toast.error('Video source not available', { id: loadingToastId });
-          throw new Error('Video source not available');
+        // Fetch the video directly
+        const response = await fetch(video.src);
+        if (!response.ok) {
+          throw new Error(`Failed to fetch video: ${response.status}`);
         }
+        
+        const blob = await response.blob();
+        downloadBlobDirectly(
+          blob,
+          filename || `${defaultFilename}.mp4`,
+          loadingToastId,
+          'Video downloaded successfully!'
+        );
+      } catch (videoError) {
+        console.error('Error downloading video:', videoError);
+        toast.error('Failed to download video', { id: loadingToastId });
+        throw videoError;
       }
     } else {
-      // For image or text, create a screenshot with title-based filename
+      // For image or text, create a screenshot
       try {
-        const canvas = await html2canvas(sharableContent as HTMLElement, {
+        toast.loading(`Capturing content...`, { id: loadingToastId });
+        
+        // Use a more reliable way to capture the content
+        html2canvas(sharableContent as HTMLElement, {
           useCORS: true,
+          allowTaint: true,
           scale: 2,
           logging: false,
-          backgroundColor: getComputedStyle(document.documentElement)
-            .getPropertyValue('--background') || '#ffffff',
-          ignoreElements: (element) => {
-            // Ignore any elements that shouldn't be captured
-            return element.classList.contains('social-share-buttons') ||
-                   element.classList.contains('preview-controls');
-          }
-        });
-        
-        // Convert canvas to blob and download
-        canvas.toBlob(
-          (blob) => {
-            if (blob) {
-              downloadBlobAsFile(
-                blob, 
-                filename || `${defaultFilename}.png`,
-                loadingToastId,
-                'Content downloaded successfully!'
-              );
-            } else {
-              toast.error('Failed to create image file', { id: loadingToastId });
+          backgroundColor: '#1e1e1e',
+          onclone: (clonedDoc) => {
+            // Apply any specific styles to the cloned document before capturing
+            const clonedContent = clonedDoc.querySelector('#sharable-content');
+            if (clonedContent) {
+              (clonedContent as HTMLElement).style.padding = '20px';
+              (clonedContent as HTMLElement).style.background = '#1e1e1e';
             }
-          },
-          'image/png',
-          0.95
-        );
+          }
+        }).then(canvas => {
+          // Use the simpler download approach
+          canvas.toBlob(
+            (blob) => {
+              if (blob) {
+                downloadBlobDirectly(
+                  blob, 
+                  filename || `${defaultFilename}.png`,
+                  loadingToastId,
+                  'Content downloaded successfully!'
+                );
+              } else {
+                toast.error('Failed to create image file', { id: loadingToastId });
+              }
+            },
+            'image/png',
+            0.95
+          );
+        }).catch(canvasError => {
+          console.error('Error capturing canvas:', canvasError);
+          toast.error('Failed to capture content', { id: loadingToastId });
+          throw canvasError;
+        });
       } catch (captureError) {
         console.error('Error capturing content:', captureError);
         toast.error('Failed to capture content for download', { id: loadingToastId });
@@ -713,8 +685,8 @@ export const downloadPreview = async (
   }
 };
 
-// Helper function for reliable file downloads using Blob and native browser download
-function downloadBlobAsFile(blob: Blob, filename: string, toastId?: string | number, successMessage?: string): void {
+// Simplified direct blob download function
+function downloadBlobDirectly(blob: Blob, filename: string, toastId?: string | number, successMessage?: string): void {
   try {
     // Create a Blob URL
     const url = URL.createObjectURL(blob);
@@ -725,11 +697,11 @@ function downloadBlobAsFile(blob: Blob, filename: string, toastId?: string | num
     downloadLink.download = filename;
     downloadLink.style.display = 'none';
     
-    // Add to DOM, click it, and remove it
+    // Add to DOM, click it, and clean up
     document.body.appendChild(downloadLink);
     downloadLink.click();
     
-    // Small delay before removing the link and revoking the URL
+    // Clean up
     setTimeout(() => {
       document.body.removeChild(downloadLink);
       URL.revokeObjectURL(url);

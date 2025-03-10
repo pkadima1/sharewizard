@@ -10,3 +10,10 @@ export interface Caption {
 }
 
 export type CaptionStyle = 'standard' | 'handwritten';
+
+// Add a more specific interface for download options
+export interface DownloadOptions {
+  quality?: number;
+  fileName?: string;
+  includeCaption?: boolean;
+}

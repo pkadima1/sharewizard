@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useRef } from 'react';
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
@@ -57,7 +56,6 @@ const GeneratedCaptions: React.FC<GeneratedCaptionsProps> = ({
   const [isEditing, setIsEditing] = useState(false);
   const [editingCaption, setEditingCaption] = useState<GeneratedCaption | null>(null);
   
-  // Determine media type
   const getMediaType = (): MediaType => {
     if (isTextOnly) return 'text-only';
     if (selectedMedia?.type.startsWith('image')) return 'image';
@@ -72,7 +70,6 @@ const GeneratedCaptions: React.FC<GeneratedCaptionsProps> = ({
       try {
         setError(null);
         
-        // First check if the user can make the request without incrementing
         const availability = await checkRequestAvailability();
         
         if (!availability.canMakeRequest) {
@@ -81,7 +78,6 @@ const GeneratedCaptions: React.FC<GeneratedCaptionsProps> = ({
           return;
         }
         
-        // Generate captions
         const captionResponse = await generateCaptions(
           selectedPlatform,
           selectedTone,
@@ -90,9 +86,7 @@ const GeneratedCaptions: React.FC<GeneratedCaptionsProps> = ({
           postIdea
         );
 
-        // Only increment the usage counter if generation was successful
         if (captionResponse && captionResponse.captions) {
-          // Increment the counter only after successful generation
           await incrementRequestUsage();
           
           setCaptions(captionResponse.captions);
@@ -131,17 +125,27 @@ const GeneratedCaptions: React.FC<GeneratedCaptionsProps> = ({
     
     try {
       setIsDownloading(true);
+      console.log("Starting download, media type:", getMediaType());
+      
+      const caption = captions[selectedCaption];
+      if (!caption) {
+        toast.error("No caption selected for download");
+        return;
+      }
+      
+      const timestamp = new Date().getTime();
+      const filename = `${caption.title.toLowerCase().replace(/\s+/g, '-')}-${timestamp}`;
       
       await downloadPreview(
         previewRef,
         getMediaType(),
-        captions[selectedCaption],
-        undefined,
+        caption,
+        filename,
         'standard'
       );
     } catch (error) {
-      console.error("Error downloading:", error);
-      toast.error("Failed to download. Please try again.");
+      console.error("Error in download process:", error);
+      toast.error("Download failed. Please try again.");
     } finally {
       setIsDownloading(false);
     }
@@ -307,7 +311,6 @@ const GeneratedCaptions: React.FC<GeneratedCaptionsProps> = ({
       </div>
       
       <div className="flex flex-col md:flex-row gap-6">
-        {/* Captions List - Left Side */}
         <div className="md:w-1/2 lg:w-3/5">
           <div className="space-y-4">
             {captions.map((caption, index) => (
@@ -361,7 +364,6 @@ const GeneratedCaptions: React.FC<GeneratedCaptionsProps> = ({
           </div>
         </div>
         
-        {/* Preview - Right Side */}
         <div className="md:w-1/2 lg:w-2/5">
           <div className="sticky top-6 space-y-4">
             <div className="bg-gray-100 dark:bg-gray-800 p-4 rounded-lg">
@@ -412,7 +414,6 @@ const GeneratedCaptions: React.FC<GeneratedCaptionsProps> = ({
                 </div>
               </div>
               
-              {/* Caption Preview Container */}
               <div 
                 ref={previewRef}
                 className="rounded-md overflow-hidden bg-white dark:bg-gray-900"
@@ -482,7 +483,6 @@ const GeneratedCaptions: React.FC<GeneratedCaptionsProps> = ({
                               alt="Preview" 
                               className="w-full h-full object-cover" 
                             />
-                            {/* Caption overlay for images */}
                             {captionOverlayMode === 'overlay' && captions.length > 0 && (
                               <div className="absolute bottom-0 left-0 right-0 bg-black bg-opacity-70 p-4 backdrop-blur-sm">
                                 <p className="text-white text-lg font-semibold mb-2">{captions[selectedCaption]?.title}</p>
@@ -506,7 +506,6 @@ const GeneratedCaptions: React.FC<GeneratedCaptionsProps> = ({
                               className="w-full h-full object-cover" 
                               controls
                             />
-                            {/* Caption overlay for videos */}
                             {captionOverlayMode === 'overlay' && captions.length > 0 && (
                               <div className="absolute bottom-0 left-0 right-0 bg-black bg-opacity-70 p-4 backdrop-blur-sm">
                                 <p className="text-white text-lg font-semibold mb-2">{captions[selectedCaption]?.title}</p>
@@ -551,8 +550,7 @@ const GeneratedCaptions: React.FC<GeneratedCaptionsProps> = ({
                 )}
               </div>
               
-              {/* Caption overlay mode toggle - only for media posts */}
-              {!isTextOnly && selectedMedia && !isEditing && (
+              {!isEditing && (
                 <div className="mt-4 flex items-center justify-end">
                   <div className="flex items-center space-x-2">
                     <span className="text-xs text-gray-500 dark:text-gray-400">Caption below</span>
