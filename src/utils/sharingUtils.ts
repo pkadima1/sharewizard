@@ -1,4 +1,3 @@
-
 import html2canvas from 'html2canvas';
 import { toast } from "sonner";
 import { getStorage, ref, uploadBytes, getDownloadURL } from 'firebase/storage';
@@ -20,64 +19,52 @@ export const createCaptionedVideo = async (
         hashtags: Array.isArray(caption?.hashtags) ? caption.hashtags : []
       };
 
-      // Create a canvas with space for video and caption (if standard style)
+      // Create a canvas with space for video and caption
       const canvas = document.createElement('canvas');
       const ctx = canvas.getContext('2d')!;
 
-      // Set canvas dimensions - only add extra height for standard captions
+      // Set canvas dimensions based on caption style
       canvas.width = videoElement.videoWidth;
       const captionHeight = captionStyle === 'standard' ? 220 : 0;
-      canvas.height = videoElement.videoHeight + captionHeight;
+      canvas.height = videoElement.videoHeight + (captionStyle === 'standard' ? captionHeight : 0);
 
-      // Clone the original video to preserve audio
-      const originalVideoSrc = videoElement.src;
+      // Clone video element to preserve original
       const originalVideo = document.createElement('video');
-      originalVideo.src = originalVideoSrc;
+      originalVideo.src = videoElement.src;
       originalVideo.crossOrigin = 'anonymous';
-      originalVideo.muted = false; // Ensure audio is enabled
-      originalVideo.volume = 1.0;  // Max volume
-      
+      originalVideo.muted = false;
+      originalVideo.volume = 1.0;
+
       // Progress tracking for long videos
       let toastId: string | number | undefined;
-      
-      // Set up video recording with audio
+
       originalVideo.onloadedmetadata = () => {
-        // Create a loading toast for longer videos
         if (originalVideo.duration > 5) {
-          toastId = toast.loading('Processing video with audio...');
+          toastId = toast.loading('Processing video with captions...');
         }
-        
+
         // Create media stream from canvas
         const canvasStream = canvas.captureStream();
-        
-        // Get audio track if possible
         let combinedStream: MediaStream;
-        
+
         try {
-          // Try getting the media stream directly from the video element
           const videoStream = (originalVideo as any).captureStream();
           const audioTracks = videoStream.getAudioTracks();
-          
+
           if (audioTracks.length > 0) {
-            // If we have audio tracks, combine with canvas stream
             audioTracks.forEach((track: MediaStreamTrack) => canvasStream.addTrack(track));
-            combinedStream = canvasStream;
-          } else {
-            console.warn('No audio tracks found in video');
-            combinedStream = canvasStream;
           }
+          combinedStream = canvasStream;
         } catch (e) {
-          console.warn('Could not capture audio track, falling back to video only:', e);
+          console.warn('Could not capture audio track:', e);
           combinedStream = canvasStream;
         }
-        
-        // Media recorder options with audio support
+
         const recorderOptions = {
-          mimeType: 'video/webm;codecs=vp8,opus', // Include opus for audio
-          videoBitsPerSecond: 2500000 // 3 Mbps for good quality
+          mimeType: 'video/webm;codecs=vp8,opus',
+          videoBitsPerSecond: 2500000
         };
-        
-        // Fallback if the preferred codec isn't supported
+
         let mediaRecorder: MediaRecorder;
         try {
           mediaRecorder = new MediaRecorder(combinedStream, recorderOptions);
@@ -92,21 +79,18 @@ export const createCaptionedVideo = async (
             chunks.push(e.data);
           }
         };
-        
+
         mediaRecorder.onstop = () => {
-          // Clean up
           if (toastId) {
             toast.dismiss(toastId);
           }
-          
           const finalBlob = new Blob(chunks, { type: 'video/webm' });
           resolve(finalBlob);
         };
 
         // Start playing and recording
         originalVideo.play().then(() => {
-          // Start recording
-          mediaRecorder.start(100); // Collect data in 100ms chunks for better performance
+          mediaRecorder.start(100);
 
           // Function to draw a frame
           const drawFrame = () => {
@@ -117,12 +101,10 @@ export const createCaptionedVideo = async (
             // Draw video frame
             ctx.drawImage(originalVideo, 0, 0);
 
-            // Choose which style to render
+            // Draw caption based on style
             if (captionStyle === 'handwritten') {
-              // Apply handwritten font overlay directly on the video
               drawHandwrittenOverlay(ctx, validatedCaption, videoElement.videoWidth, videoElement.videoHeight);
             } else {
-              // Draw standard caption with background
               drawStandardCaption(ctx, validatedCaption, videoElement, captionHeight);
             }
 
@@ -130,7 +112,6 @@ export const createCaptionedVideo = async (
             if (!originalVideo.ended && !originalVideo.paused) {
               requestAnimationFrame(drawFrame);
             } else {
-              // Make sure we have at least 500ms of data
               setTimeout(() => {
                 mediaRecorder.stop();
               }, 500);
@@ -140,7 +121,6 @@ export const createCaptionedVideo = async (
           // Start drawing frames
           drawFrame();
 
-          // Stop recording when video ends
           originalVideo.onended = () => {
             setTimeout(() => {
               if (mediaRecorder.state === 'recording') {
@@ -155,14 +135,14 @@ export const createCaptionedVideo = async (
           reject(err);
         });
       };
-      
+
       originalVideo.onerror = (e) => {
         if (toastId) {
           toast.dismiss(toastId);
         }
         reject(new Error(`Video loading error: ${e}`));
       };
-      
+
     } catch (error) {
       reject(error);
     }
