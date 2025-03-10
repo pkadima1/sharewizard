@@ -1,11 +1,11 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Button } from "@/components/ui/button";
 import { Share, Instagram, Facebook, Twitter, Linkedin, Youtube, Music } from 'lucide-react';
 import { toast } from "sonner";
 import { shareToPlatform } from '@/utils/socialMediaUtils';
 import { MediaType } from '@/types/mediaTypes';
-import { isWebShareSupported, isFileShareSupported } from '@/utils/sharingUtils';
+import { isWebShareSupported, isFileShareSupported, sharePreview } from '@/utils/sharingUtils';
 
 interface SocialSharingProps {
   isEditing: boolean;
@@ -15,6 +15,7 @@ interface SocialSharingProps {
   caption?: any;
   mediaType?: MediaType;
   previewUrl?: string | null;
+  previewRef?: React.RefObject<HTMLDivElement>;
 }
 
 const SocialSharing: React.FC<SocialSharingProps> = ({
@@ -24,7 +25,8 @@ const SocialSharing: React.FC<SocialSharingProps> = ({
   selectedPlatform = '',
   caption,
   mediaType = 'text-only',
-  previewUrl
+  previewUrl,
+  previewRef
 }) => {
   const [platformLoading, setPlatformLoading] = useState<string | null>(null);
   const [browserShareLoading, setBrowserShareLoading] = useState<boolean>(false);
@@ -70,12 +72,35 @@ const SocialSharing: React.FC<SocialSharingProps> = ({
       // Ensure we don't trigger any platform loading indicators
       setPlatformLoading(null);
       
-      // Call the parent component's share function
+      // Direct Web Share API implementation for better media sharing
+      if (previewRef && caption && mediaType !== 'text-only') {
+        console.log("Using enhanced Web Share API for media sharing");
+        try {
+          const result = await sharePreview(previewRef, caption, mediaType);
+          
+          if (result.status === 'shared') {
+            toast.success(result.message || "Shared successfully!");
+          } else if (result.status === 'fallback') {
+            toast.info(result.message || "Used fallback sharing method.");
+          } else if (result.status === 'cancelled') {
+            // User cancelled, no need for notification
+            console.log("Share was cancelled by user");
+          }
+          
+          setBrowserShareLoading(false);
+          return;
+        } catch (shareError) {
+          console.error("Enhanced sharing failed:", shareError);
+          // Continue to fallback method if enhanced sharing fails
+        }
+      }
+      
+      // Fall back to parent component's share function if enhanced sharing fails
       await onShareClick();
-      console.log(`Shared via browser share API`);
+      console.log(`Shared via browser share API (fallback method)`);
     } catch (error) {
       console.error('Browser sharing error:', error);
-      toast.error('Failed to share via browser. Please try copying the text and sharing manually.');
+      toast.error('Failed to share. Please try copying the text and sharing manually.');
     } finally {
       setBrowserShareLoading(false);
     }

@@ -6,6 +6,7 @@ import { Edit, Share, Download } from 'lucide-react';
 import { Badge } from "@/components/ui/badge";
 import { GeneratedCaption } from '@/services/openaiService';
 import { MediaType, CaptionStyle } from '@/types/mediaTypes';
+import SocialSharing from './SocialSharing';
 
 interface MediaPreviewProps {
   previewUrl: string | null;
@@ -51,6 +52,14 @@ const MediaPreview = forwardRef<HTMLDivElement, MediaPreviewProps>(({
 
   const handleToggleOverlayMode = () => {
     onCaptionOverlayModeChange(captionOverlayMode === 'overlay' ? 'below' : 'overlay');
+  };
+
+  // Determine media type for sharing
+  const getMediaType = (): MediaType => {
+    if (isTextOnly) return 'text-only';
+    if (selectedMedia?.type.startsWith('video')) return 'video';
+    if (selectedMedia?.type.startsWith('image')) return 'image';
+    return 'text-only';
   };
 
   return (
@@ -188,16 +197,32 @@ const MediaPreview = forwardRef<HTMLDivElement, MediaPreviewProps>(({
         </div>
         
         {!isEditing && (
-          <div className="mt-4 flex items-center justify-end">
-            <div className="flex items-center space-x-2">
-              <span className="text-xs text-gray-500 dark:text-gray-400">Caption below</span>
-              <Switch 
-                checked={captionOverlayMode === 'overlay'} 
-                onCheckedChange={handleToggleOverlayMode} 
-              />
-              <span className="text-xs text-gray-500 dark:text-gray-400">Caption overlay</span>
+          <>
+            <div className="mt-4 flex items-center justify-end">
+              <div className="flex items-center space-x-2">
+                <span className="text-xs text-gray-500 dark:text-gray-400">Caption below</span>
+                <Switch 
+                  checked={captionOverlayMode === 'overlay'} 
+                  onCheckedChange={handleToggleOverlayMode} 
+                />
+                <span className="text-xs text-gray-500 dark:text-gray-400">Caption overlay</span>
+              </div>
             </div>
-          </div>
+            
+            {/* We now include SocialSharing directly in MediaPreview for better integration */}
+            <div className="mt-4 pt-4 border-t border-gray-200 dark:border-gray-700">
+              <SocialSharing
+                isEditing={isEditing}
+                isSharing={isSharing}
+                onShareClick={onShareClick}
+                selectedPlatform=""
+                caption={currentCaption}
+                mediaType={getMediaType()}
+                previewUrl={previewUrl}
+                previewRef={ref}
+              />
+            </div>
+          </>
         )}
       </div>
     </div>
