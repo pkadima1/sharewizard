@@ -116,6 +116,14 @@ export const shareToInstagram = async (options: SharingOptions): Promise<ShareRe
     const shareableUrl = await getFirebaseShareableUrl(mediaUrl || null, caption, mediaType);
     console.log("Prepared Instagram shareable URL:", shareableUrl);
     
+    // Copy caption to clipboard for easy pasting
+    try {
+      await navigator.clipboard.writeText(formattedText);
+      toast.info('Caption copied to clipboard for pasting in Instagram!');
+    } catch (err) {
+      console.warn('Could not copy text to clipboard:', err);
+    }
+    
     // For Instagram, we directly open Instagram.com in mobile or the app intent on supported devices
     const useNativeApp = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
     
@@ -137,8 +145,11 @@ export const shareToInstagram = async (options: SharingOptions): Promise<ShareRe
       // On desktop, open Instagram.com
       window.open('https://www.instagram.com/', '_blank');
       
-      // Try to copy the caption to clipboard for easy pasting
-      await navigator.clipboard.writeText(formattedText);
+      // If we have media, open it in a new tab for saving
+      if (shareableUrl) {
+        window.open(shareableUrl, '_blank');
+        toast.info('Media opened in a new tab for downloading and uploading to Instagram.');
+      }
       
       return { 
         success: true, 
@@ -154,7 +165,7 @@ export const shareToInstagram = async (options: SharingOptions): Promise<ShareRe
   }
 };
 
-// Twitter API sharing function
+// Twitter/X API sharing function
 export const shareToTwitter = async (options: SharingOptions): Promise<ShareResult> => {
   try {
     const { caption, mediaType, mediaUrl } = options;
@@ -164,29 +175,32 @@ export const shareToTwitter = async (options: SharingOptions): Promise<ShareResu
     const truncatedText = tweetText.length > 260 
       ? tweetText.substring(0, 257) + '...' 
       : tweetText;
+
+    // Copy the text to clipboard
+    try {
+      await navigator.clipboard.writeText(truncatedText);
+      toast.info('Tweet text copied to clipboard for pasting!');
+    } catch (err) {
+      console.warn('Could not copy text to clipboard:', err);
+    }
     
-    // For Twitter, we can use the Web Intent URL without media
-    // Twitter will handle the media attachment in its own interface
+    // If we have media, prepare it for sharing
+    let shareableUrl = null;
+    if (mediaUrl) {
+      shareableUrl = await getFirebaseShareableUrl(mediaUrl, caption, mediaType);
+    }
+    
+    // For Twitter, use a direct text intent without the Firebase URL to avoid link previews
+    // The user can manually attach the media
     const twitterShareUrl = `https://twitter.com/intent/tweet?text=${encodeURIComponent(truncatedText)}`;
     
     // Open Twitter share dialog
     window.open(twitterShareUrl, '_blank', 'width=600,height=600');
     
-    // If we have media, copy it to clipboard for manual attachment
-    if (mediaUrl) {
-      try {
-        // First upload to Firebase to get a stable URL if needed
-        const shareableUrl = await getFirebaseShareableUrl(mediaUrl, caption, mediaType);
-        
-        // Notify user to download and attach media manually
-        if (shareableUrl) {
-          // Open the media in a new tab for easy saving
-          window.open(shareableUrl, '_blank');
-          toast.info('Media opened in a new tab. Save it and attach to your tweet.');
-        }
-      } catch (error) {
-        console.error('Error preparing media for Twitter:', error);
-      }
+    // If we have media, open it in a new tab for saving
+    if (shareableUrl) {
+      window.open(shareableUrl, '_blank');
+      toast.info('Media opened in a new tab for attaching to your tweet.');
     }
     
     return { 
@@ -210,6 +224,14 @@ export const shareToFacebook = async (options: SharingOptions): Promise<ShareRes
     // Format caption text
     const formattedText = formatCaptionForSharing(caption);
     
+    // Copy to clipboard for easy pasting
+    try {
+      await navigator.clipboard.writeText(formattedText);
+      toast.info('Post text copied to clipboard for pasting in Facebook!');
+    } catch (err) {
+      console.warn('Could not copy text to clipboard:', err);
+    }
+    
     // First upload to Firebase to get a stable URL if needed
     let shareableUrl = '';
     
@@ -217,23 +239,19 @@ export const shareToFacebook = async (options: SharingOptions): Promise<ShareRes
       const result = await getFirebaseShareableUrl(mediaUrl, caption, mediaType);
       if (result) {
         shareableUrl = result;
-      } else {
-        shareableUrl = window.location.href; // Fallback to the app URL
+        
+        // Open the media in a new tab
+        window.open(shareableUrl, '_blank');
+        toast.info('Media opened in a new tab for downloading and sharing to Facebook.');
       }
-    } else {
-      shareableUrl = window.location.href; // Default to the app URL
     }
     
-    console.log("Prepared Facebook sharing URL:", shareableUrl);
-    
-    // For Facebook, use Dialog API to ensure better compatibility
-    const fbShareUrl = `https://www.facebook.com/dialog/share?app_id=${import.meta.env.VITE_FACEBOOK_APP_ID || '1602291440389010'}&href=${encodeURIComponent(shareableUrl)}&quote=${encodeURIComponent(formattedText)}&display=popup`;
-    
-    window.open(fbShareUrl, '_blank', 'width=600,height=600');
+    // For Facebook, open the main site and let user paste
+    window.open('https://www.facebook.com/', '_blank', 'width=600,height=600');
     
     return { 
       success: true, 
-      message: 'Facebook sharing window opened' 
+      message: 'Facebook opened. You can paste your caption and upload the media now.' 
     };
   } catch (error) {
     console.error('Facebook sharing error:', error);
@@ -252,37 +270,32 @@ export const shareToLinkedIn = async (options: SharingOptions): Promise<ShareRes
     // Format caption text
     const formattedText = formatCaptionForSharing(caption);
     
-    // Try to copy the text to clipboard for easy pasting
+    // Copy text to clipboard for easy pasting
     try {
       await navigator.clipboard.writeText(formattedText);
-      toast.info('Caption copied to clipboard! You can paste it in LinkedIn.');
+      toast.info('Post text copied to clipboard for pasting in LinkedIn!');
     } catch (err) {
       console.warn('Could not copy text to clipboard:', err);
     }
     
-    // For LinkedIn, we need to use their feed URL which doesn't directly accept media
-    // We'll open LinkedIn compose window and let users paste the caption
-    window.open('https://www.linkedin.com/post/new', '_blank', 'width=600,height=600');
-    
-    // If we have media, open it in a new tab for easy saving
+    // Get shareable URL for the media
+    let shareableUrl = null;
     if (mediaUrl) {
-      try {
-        // First upload to Firebase to get a stable URL if needed
-        const shareableUrl = await getFirebaseShareableUrl(mediaUrl, caption, mediaType);
-        
-        if (shareableUrl) {
-          // Open the media in a new tab for easy saving
-          window.open(shareableUrl, '_blank');
-          toast.info('Media opened in a new tab. Save it and attach to your LinkedIn post.');
-        }
-      } catch (error) {
-        console.error('Error preparing media for LinkedIn:', error);
+      shareableUrl = await getFirebaseShareableUrl(mediaUrl, caption, mediaType);
+      
+      if (shareableUrl) {
+        // Open the media in a new tab for saving
+        window.open(shareableUrl, '_blank');
+        toast.info('Media opened in a new tab for downloading and sharing to LinkedIn.');
       }
     }
     
+    // Open LinkedIn's post creation page
+    window.open('https://www.linkedin.com/post/new', '_blank');
+    
     return { 
       success: true, 
-      message: 'LinkedIn post window opened' 
+      message: 'LinkedIn opened. You can paste your text and upload the media now.' 
     };
   } catch (error) {
     console.error('LinkedIn sharing error:', error);

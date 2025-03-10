@@ -37,11 +37,15 @@ const MediaPreview = forwardRef<HTMLDivElement, MediaPreviewProps>(({
   isEditing
 }, ref) => {
   const videoRef = useRef<HTMLVideoElement>(null);
+  const imageRef = useRef<HTMLImageElement>(null);
   
-  // Ensure videos have crossOrigin attribute set for sharing
+  // Ensure media elements have crossOrigin attribute set for sharing
   useEffect(() => {
     if (videoRef.current) {
       videoRef.current.crossOrigin = "anonymous";
+    }
+    if (imageRef.current) {
+      imageRef.current.crossOrigin = "anonymous";
     }
   }, [previewUrl]);
 
@@ -109,6 +113,7 @@ const MediaPreview = forwardRef<HTMLDivElement, MediaPreviewProps>(({
                 {selectedMedia && selectedMedia.type.startsWith('image') ? (
                   <div className="aspect-square w-full relative">
                     <img 
+                      ref={imageRef}
                       src={previewUrl} 
                       alt="Preview" 
                       className="w-full h-full object-cover"

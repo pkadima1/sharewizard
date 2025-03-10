@@ -36,41 +36,37 @@ const SocialSharing: React.FC<SocialSharingProps> = ({
       setPlatformLoading(platform);
       toast.info(`Preparing to share on ${platform}...`);
       
-      // If we're trying to share directly to a social platform
-      if (platform.toLowerCase() !== 'browser') {
-        // First try the direct API sharing
-        const result = await shareToPlatform(platform.toLowerCase(), {
-          caption,
-          mediaType,
-          mediaUrl: previewUrl
-        });
-        
-        if (result.success) {
-          toast.success(result.message || `Shared to ${platform} successfully!`);
-          console.log(`Shared to ${platform} via API`);
-          setPlatformLoading(null);
-          return;
-        } else if (result.error) {
-          // If direct API sharing fails, fall back to browser sharing
-          console.warn(`Direct ${platform} sharing failed: ${result.error}`);
-          toast.warning(`Direct ${platform} sharing unavailable. Falling back to browser sharing.`);
-        }
-      }
+      // Share directly to the selected platform
+      const result = await shareToPlatform(platform.toLowerCase(), {
+        caption,
+        mediaType,
+        mediaUrl: previewUrl
+      });
       
-      // Fall back to browser sharing with both text and media
-      setPlatformLoading(null); // Clear platform loading before starting browser sharing
-      handleBrowserShare();
+      if (result.success) {
+        toast.success(result.message || `Shared to ${platform} successfully!`);
+        console.log(`Shared to ${platform} via API`);
+      } else if (result.error) {
+        // If direct sharing fails, show the error
+        console.warn(`${platform} sharing error: ${result.error}`);
+        toast.error(`Failed to share to ${platform}: ${result.error}`);
+      }
     } catch (error) {
       console.error(`Error sharing to ${platform}:`, error);
-      toast.error(`Failed to share to ${platform}. Trying browser sharing instead.`);
+      toast.error(`Failed to share to ${platform}.`);
+    } finally {
       setPlatformLoading(null);
-      handleBrowserShare();
     }
   };
 
   const handleBrowserShare = async () => {
     try {
       setBrowserShareLoading(true);
+      
+      // Ensure we don't trigger any platform loading indicators
+      setPlatformLoading(null);
+      
+      // Call the parent component's share function
       await onShareClick();
       console.log(`Shared via browser share API`);
     } catch (error) {

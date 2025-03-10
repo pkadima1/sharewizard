@@ -442,7 +442,7 @@ export const sharePreview = async (
   try {
     console.log("Starting share process for media type:", mediaType);
     
-    // Target the sharable-content element instead of preview-content
+    // Target the sharable-content element
     const sharableContent = previewRef.current.querySelector('#sharable-content');
     if (!sharableContent) throw new Error('Sharable content not found');
     
@@ -460,11 +460,10 @@ export const sharePreview = async (
     if (navigator.share) {
       console.log("Web Share API is available");
       
-      // Handle different media types for file sharing
-      if (mediaType !== 'text-only' && navigator.canShare) {
+      // Handle different media types for sharing
+      if (mediaType !== 'text-only') {
         try {
           let mediaFile: File | undefined;
-          let mediaBlob: Blob | undefined;
           
           // Show a loading indicator
           const loadingToastId = toast.loading('Preparing media for sharing...');
@@ -497,8 +496,6 @@ export const sharePreview = async (
               
               // Create captioned video with caption overlay
               const captionedVideoBlob = await createCaptionedVideo(video, caption);
-              mediaBlob = captionedVideoBlob;
-              console.log("Captioned video created successfully:", captionedVideoBlob.size, "bytes");
               
               // Create a file from the blob
               mediaFile = new File([captionedVideoBlob], `video-${Date.now()}.webm`, { 
@@ -506,33 +503,75 @@ export const sharePreview = async (
               });
               
               console.log('Prepared captioned video for sharing:', mediaFile.size, 'bytes');
+              
+              // Try to share with the media file
+              if (navigator.canShare && navigator.canShare({ files: [mediaFile] })) {
+                console.log("Sharing video with Web Share API");
+                
+                try {
+                  await navigator.share({
+                    ...shareData,
+                    files: [mediaFile]
+                  });
+                  
+                  toast.dismiss(loadingToastId);
+                  return { 
+                    status: 'shared', 
+                    message: 'Video shared successfully!' 
+                  };
+                } catch (fileShareError) {
+                  console.error('Error sharing video with Web Share API:', fileShareError);
+                  
+                  // If AbortError, user cancelled
+                  if (fileShareError instanceof Error && fileShareError.name === 'AbortError') {
+                    toast.dismiss(loadingToastId);
+                    return { status: 'cancelled' };
+                  }
+                  
+                  // If we can't share directly, fall back to clipboard
+                  toast.info('Falling back to clipboard for video sharing', { id: loadingToastId });
+                  await navigator.clipboard.writeText(formattedCaption);
+                  
+                  // Create a downloadable link for the video
+                  const videoUrl = URL.createObjectURL(captionedVideoBlob);
+                  window.open(videoUrl, '_blank');
+                  
+                  toast.dismiss(loadingToastId);
+                  return { 
+                    status: 'fallback', 
+                    message: 'Caption copied to clipboard! The video has been opened in a new tab for you to save and share.' 
+                  };
+                }
+              } else {
+                // If Web Share API doesn't support file sharing
+                console.log("Web Share API doesn't support file sharing for this video");
+                await navigator.clipboard.writeText(formattedCaption);
+                
+                // Create a downloadable link for the video
+                const videoUrl = URL.createObjectURL(captionedVideoBlob);
+                window.open(videoUrl, '_blank');
+                
+                toast.dismiss(loadingToastId);
+                return { 
+                  status: 'fallback', 
+                  message: 'Caption copied to clipboard! The video has been opened in a new tab for you to save and share.' 
+                };
+              }
             } catch (videoProcessingError) {
               console.error('Error processing video for sharing:', videoProcessingError);
               toast.error('Error processing video for sharing', { id: loadingToastId });
               
-              // Fallback to the original video if processing fails
+              // Fall back to text-only sharing
               try {
-                const response = await fetch(video.src);
-                if (!response.ok) throw new Error('Failed to fetch video');
-                
-                const blob = await response.blob();
-                mediaBlob = blob;
-                mediaFile = new File([blob], `video-${Date.now()}.mp4`, { 
-                  type: blob.type || 'video/mp4' 
-                });
-                
-                console.log('Falling back to original video for sharing');
-              } catch (fetchError) {
-                console.error('Error fetching original video:', fetchError);
-                toast.error('Could not prepare video for sharing', { id: loadingToastId });
+                await navigator.clipboard.writeText(formattedCaption);
                 toast.dismiss(loadingToastId);
-                
-                // Try text-only sharing as last resort
-                if (navigator.share) {
-                  await navigator.share(shareData);
-                  return { status: 'shared', message: 'Caption shared (without media)' };
-                }
-                throw new Error('Failed to prepare video for sharing');
+                return { 
+                  status: 'fallback', 
+                  message: 'Caption copied to clipboard! You can paste it into your social media app.' 
+                };
+              } catch (clipboardError) {
+                toast.dismiss(loadingToastId);
+                throw new Error('Failed to share caption');
               }
             }
           } else if (mediaType === 'image') {
@@ -552,7 +591,7 @@ export const sharePreview = async (
                 }
               });
               
-              mediaBlob = await new Promise<Blob>((resolve, reject) => {
+              const imageBlob = await new Promise<Blob>((resolve, reject) => {
                 canvas.toBlob(
                   (b) => b ? resolve(b) : reject(new Error('Failed to create blob')), 
                   'image/png', 
@@ -560,87 +599,81 @@ export const sharePreview = async (
                 );
               });
               
-              mediaFile = new File([mediaBlob], `image-${Date.now()}.png`, { 
+              mediaFile = new File([imageBlob], `image-${Date.now()}.png`, { 
                 type: 'image/png' 
               });
               
               console.log("Image prepared for sharing");
+              
+              // Try to share with the media file
+              if (navigator.canShare && navigator.canShare({ files: [mediaFile] })) {
+                console.log("Sharing image with Web Share API");
+                
+                try {
+                  await navigator.share({
+                    ...shareData,
+                    files: [mediaFile]
+                  });
+                  
+                  toast.dismiss(loadingToastId);
+                  return { 
+                    status: 'shared', 
+                    message: 'Image shared successfully!' 
+                  };
+                } catch (fileShareError) {
+                  console.error('Error sharing image with Web Share API:', fileShareError);
+                  
+                  // If AbortError, user cancelled
+                  if (fileShareError instanceof Error && fileShareError.name === 'AbortError') {
+                    toast.dismiss(loadingToastId);
+                    return { status: 'cancelled' };
+                  }
+                  
+                  // If we can't share directly, fall back to text sharing
+                  console.log("Falling back to text-only sharing");
+                  await navigator.share({
+                    title: shareData.title,
+                    text: shareData.text
+                  });
+                  
+                  toast.dismiss(loadingToastId);
+                  return { 
+                    status: 'shared', 
+                    message: 'Caption shared (image could not be shared)' 
+                  };
+                }
+              } else {
+                // If Web Share API doesn't support file sharing
+                console.log("Web Share API doesn't support file sharing for this image");
+                
+                // Try text-only sharing
+                try {
+                  await navigator.share({
+                    title: shareData.title,
+                    text: shareData.text
+                  });
+                  
+                  toast.dismiss(loadingToastId);
+                  return { 
+                    status: 'shared', 
+                    message: 'Caption shared (image could not be shared)' 
+                  };
+                } catch (textShareError) {
+                  // Fall back to clipboard
+                  await navigator.clipboard.writeText(formattedCaption);
+                  toast.dismiss(loadingToastId);
+                  return { 
+                    status: 'fallback', 
+                    message: 'Caption copied to clipboard! You can paste it into your social media app.' 
+                  };
+                }
+              }
             } catch (imageError) {
               console.error('Error preparing image for sharing:', imageError);
               toast.error('Could not prepare image for sharing', { id: loadingToastId });
               toast.dismiss(loadingToastId);
               
-              // Try text-only sharing as last resort
-              if (navigator.share) {
-                await navigator.share(shareData);
-                return { status: 'shared', message: 'Caption shared (without media)' };
-              }
-              throw new Error('Failed to prepare image for sharing');
-            }
-          }
-          
-          // Dismiss loading indicator
-          toast.dismiss(loadingToastId);
-          
-          // Upload the media to Firebase to get a stable URL for sharing
-          if (mediaBlob) {
-            try {
-              const storage = getStorage();
-              const timestamp = Date.now();
-              const safeTitle = caption.title
-                ? caption.title.toLowerCase().replace(/[^\w]/g, '-').substring(0, 30)
-                : 'share';
-              const fileExtension = mediaType === 'video' ? 'webm' : 'png';
-              const fileName = `shared-media/${safeTitle}-${timestamp}.${fileExtension}`;
-              const storageRef = ref(storage, fileName);
-              
-              console.log(`Uploading ${mediaType} to Firebase...`);
-              await uploadBytes(storageRef, mediaBlob);
-              const downloadUrl = await getDownloadURL(storageRef);
-              console.log('Media uploaded to Firebase:', downloadUrl);
-              
-              // Set the URL for sharing
-              shareData.url = downloadUrl;
-            } catch (uploadError) {
-              console.error('Error uploading to Firebase:', uploadError);
-              // Continue with file sharing even if Firebase upload fails
-            }
-          }
-          
-          // Try to share with the media file
-          if (mediaFile && navigator.canShare && navigator.canShare({ files: [mediaFile] })) {
-            console.log("Sharing with media file:", mediaFile.name, mediaFile.size, "bytes");
-            
-            try {
-              await navigator.share({
-                ...shareData,
-                files: [mediaFile]
-              });
-              
-              return { 
-                status: 'shared', 
-                message: 'Content shared successfully!' 
-              };
-            } catch (fileShareError) {
-              console.error('Error sharing with file:', fileShareError);
-              
-              // If AbortError, user cancelled
-              if (fileShareError instanceof Error && fileShareError.name === 'AbortError') {
-                return { status: 'cancelled' };
-              }
-              
-              // Fall back to URL sharing if available
-              if (shareData.url) {
-                console.log("Falling back to URL sharing");
-                await navigator.share(shareData);
-                return { 
-                  status: 'shared', 
-                  message: 'Content shared with URL link!' 
-                };
-              }
-              
-              // Last resort: text-only sharing
-              console.log("Falling back to text-only sharing");
+              // Fall back to text-only sharing
               await navigator.share({
                 title: shareData.title,
                 text: shareData.text
@@ -648,37 +681,7 @@ export const sharePreview = async (
               
               return { 
                 status: 'shared', 
-                message: 'Caption shared (without media)' 
-              };
-            }
-          } else if (shareData.url) {
-            // If we can't share the file directly, try with the URL
-            console.log("Sharing with URL:", shareData.url);
-            try {
-              await navigator.share(shareData);
-              
-              return { 
-                status: 'shared', 
-                message: 'Content shared with link!' 
-              };
-            } catch (urlShareError) {
-              console.error('Error sharing with URL:', urlShareError);
-              
-              // If AbortError, user cancelled
-              if (urlShareError instanceof Error && urlShareError.name === 'AbortError') {
-                return { status: 'cancelled' };
-              }
-              
-              // Last resort: text-only sharing
-              console.log("Falling back to text-only sharing");
-              await navigator.share({
-                title: shareData.title,
-                text: shareData.text
-              });
-              
-              return { 
-                status: 'shared', 
-                message: 'Caption shared (without media)' 
+                message: 'Caption shared (without image)' 
               };
             }
           }
@@ -922,57 +925,4 @@ export const isFileShareSupported = (): boolean => {
 /**
  * Tracks social sharing events for analytics
  * @param platform The platform where content was shared
- * @param mediaType The type of media that was shared
- * @param success Whether the sharing was successful
- */
-export const trackSocialShare = (
-  platform: string,
-  mediaType: MediaType,
-  success: boolean = true
-): void => {
-  try {
-    // Log the share event
-    console.log(`Content shared to ${platform}: ${mediaType} (${success ? 'success' : 'failed'})`);
-    
-    // Here you would typically send an analytics event
-    // Examples (uncomment the one that matches your analytics setup):
-    
-    // For Google Analytics 4
-    // if (typeof window !== 'undefined' && (window as any).gtag) {
-    //   (window as any).gtag('event', 'share', {
-    //     event_category: 'engagement',
-    //     event_label: platform,
-    //     content_type: mediaType,
-    //     success: success
-    //   });
-    // }
-    
-    // For Segment/Amplitude/Mixpanel style analytics
-    // if (typeof window !== 'undefined' && (window as any).analytics) {
-    //   (window as any).analytics.track('Content Shared', {
-    //     platform,
-    //     mediaType,
-    //     success
-    //   });
-    // }
-    
-  } catch (error) {
-    // Silently fail to prevent breaking the app flow
-    console.error('Error tracking share event:', error);
-  }
-};
-
-/**
- * Formats a string in Title Case (first letter of each word capitalized)
- * @param text The input string to format
- * @returns The formatted string in Title Case
- */
-function toTitleCase(text: string): string {
-  return text
-    .split(' ')
-    .map(word => {
-      if (!word) return word;
-      return word.charAt(0).toUpperCase() + word.slice(1).toLowerCase();
-    })
-    .join(' ');
-}
+ * @param
