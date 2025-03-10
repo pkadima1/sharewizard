@@ -1,9 +1,9 @@
-
 import React from 'react';
 import { Button } from "@/components/ui/button";
 import { Share, Instagram, Facebook, Twitter, Linkedin, Youtube, Music } from 'lucide-react';
 import { toast } from "sonner";
 import { shareToPlatform } from '@/utils/socialMediaUtils';
+import { MediaType } from '@/types/mediaTypes';
 
 interface SocialSharingProps {
   isEditing: boolean;
@@ -11,7 +11,7 @@ interface SocialSharingProps {
   onShareClick: () => void;
   selectedPlatform?: string;
   caption?: any;
-  mediaType?: string;
+  mediaType?: MediaType;
   previewUrl?: string | null;
 }
 
