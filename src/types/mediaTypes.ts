@@ -16,4 +16,5 @@ export interface DownloadOptions {
   quality?: number;
   fileName?: string;
   includeCaption?: boolean;
+  captionStyle?: CaptionStyle;
 }

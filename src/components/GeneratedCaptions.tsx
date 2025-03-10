@@ -13,7 +13,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { sharePreview, downloadPreview } from '@/utils/sharingUtils';
 import { Badge } from "@/components/ui/badge";
-import { MediaType } from '@/types/mediaTypes';
+import { MediaType, CaptionStyle } from '@/types/mediaTypes';
 
 interface GeneratedCaptionsProps {
   selectedMedia: File | null;
@@ -136,12 +136,14 @@ const GeneratedCaptions: React.FC<GeneratedCaptionsProps> = ({
       const timestamp = new Date().getTime();
       const filename = `${caption.title.toLowerCase().replace(/\s+/g, '-')}-${timestamp}`;
       
+      const captionStyle: CaptionStyle = captionOverlayMode === 'overlay' ? 'handwritten' : 'standard';
+      
       await downloadPreview(
         previewRef,
         getMediaType(),
         caption,
         filename,
-        'standard'
+        captionStyle
       );
     } catch (error) {
       console.error("Error in download process:", error);

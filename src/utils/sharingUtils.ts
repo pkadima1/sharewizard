@@ -559,7 +559,7 @@ export const sharePreview = async (
   }
 };
 
-// Fixed downloadPreview function with proper error handling and reliable download mechanism
+// Fixed downloadPreview function with proper caption overlay for videos
 export const downloadPreview = async (
   previewRef: React.RefObject<HTMLDivElement>,
   mediaType: MediaType,
@@ -583,6 +583,8 @@ export const downloadPreview = async (
   const loadingToastId = toast.loading('Preparing download...');
 
   try {
+    console.log(`Starting download process for media type: ${mediaType}`);
+    
     // Generate a slugified version of the caption title for the filename
     const slugifiedTitle = caption.title
       ? caption.title
@@ -603,31 +605,40 @@ export const downloadPreview = async (
         throw new Error('Video element not found');
       }
       
-      // Handle the video download more directly
+      // Make sure video is loaded properly
+      if (!video.readyState >= 2) {
+        toast.loading('Waiting for video to load...', { id: loadingToastId });
+        // Wait for video to be loaded enough to get dimensions
+        await new Promise<void>((resolve) => {
+          const checkReadyState = () => {
+            if (video.readyState >= 2) {
+              resolve();
+            } else {
+              setTimeout(checkReadyState, 100);
+            }
+          };
+          checkReadyState();
+        });
+      }
+      
+      toast.loading('Processing video with captions...', { id: loadingToastId });
+      console.log('Processing video with dimensions:', video.videoWidth, 'x', video.videoHeight);
+      
       try {
-        if (!video.src) {
-          throw new Error('Video source not available');
-        }
+        // Create captioned video with overlay
+        const captionedVideoBlob = await createCaptionedVideo(video, caption, captionStyle);
+        console.log('Captioned video blob created:', captionedVideoBlob.size, 'bytes');
         
-        toast.loading(`Preparing video download...`, { id: loadingToastId });
-        
-        // Fetch the video directly
-        const response = await fetch(video.src);
-        if (!response.ok) {
-          throw new Error(`Failed to fetch video: ${response.status}`);
-        }
-        
-        const blob = await response.blob();
-        downloadBlobDirectly(
-          blob,
-          filename || `${defaultFilename}.mp4`,
-          loadingToastId,
-          'Video downloaded successfully!'
+        // Download the processed video
+        downloadBlobAsFile(
+          captionedVideoBlob,
+          filename || `${defaultFilename}.webm`, 
+          loadingToastId
         );
-      } catch (videoError) {
-        console.error('Error downloading video:', videoError);
-        toast.error('Failed to download video', { id: loadingToastId });
-        throw videoError;
+      } catch (videoProcessingError) {
+        console.error('Video processing error:', videoProcessingError);
+        toast.error('Failed to process video with captions', { id: loadingToastId });
+        throw videoProcessingError;
       }
     } else {
       // For image or text, create a screenshot
@@ -654,11 +665,10 @@ export const downloadPreview = async (
           canvas.toBlob(
             (blob) => {
               if (blob) {
-                downloadBlobDirectly(
+                downloadBlobAsFile(
                   blob, 
                   filename || `${defaultFilename}.png`,
-                  loadingToastId,
-                  'Content downloaded successfully!'
+                  loadingToastId
                 );
               } else {
                 toast.error('Failed to create image file', { id: loadingToastId });
@@ -685,9 +695,11 @@ export const downloadPreview = async (
   }
 };
 
-// Simplified direct blob download function
-function downloadBlobDirectly(blob: Blob, filename: string, toastId?: string | number, successMessage?: string): void {
+// Reliable function to download a blob as a file
+function downloadBlobAsFile(blob: Blob, filename: string, toastId?: string | number): void {
   try {
+    console.log(`Downloading blob as file: ${filename} (${blob.size} bytes, type: ${blob.type})`);
+    
     // Create a Blob URL
     const url = URL.createObjectURL(blob);
     
@@ -706,9 +718,9 @@ function downloadBlobDirectly(blob: Blob, filename: string, toastId?: string | n
       document.body.removeChild(downloadLink);
       URL.revokeObjectURL(url);
       
-      // Show success message if provided
-      if (toastId && successMessage) {
-        toast.success(successMessage, { id: toastId });
+      // Show success message
+      if (toastId) {
+        toast.success(`Downloaded successfully as ${filename}`, { id: toastId });
       }
     }, 100);
   } catch (error) {
