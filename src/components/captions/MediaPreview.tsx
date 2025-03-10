@@ -137,6 +137,7 @@ const MediaPreview = forwardRef<HTMLDivElement, MediaPreviewProps>(({
                       className="w-full h-full object-cover" 
                       controls
                       crossOrigin="anonymous"
+                      playsInline
                     />
                     {captionOverlayMode === 'overlay' && currentCaption && (
                       <div className="absolute bottom-0 left-0 right-0 bg-black bg-opacity-70 p-4 backdrop-blur-sm">

@@ -26,6 +26,7 @@ const SocialSharing: React.FC<SocialSharingProps> = ({
   previewUrl
 }) => {
   const [platformLoading, setPlatformLoading] = useState<string | null>(null);
+  const [browserShareLoading, setBrowserShareLoading] = useState<boolean>(false);
   
   if (isEditing) return null;
 
@@ -57,14 +58,26 @@ const SocialSharing: React.FC<SocialSharingProps> = ({
       }
       
       // Fall back to browser sharing with both text and media
-      onShareClick();
-      console.log(`Shared via browser share API`);
-      setPlatformLoading(null);
+      setPlatformLoading(null); // Clear platform loading before starting browser sharing
+      handleBrowserShare();
     } catch (error) {
       console.error(`Error sharing to ${platform}:`, error);
       toast.error(`Failed to share to ${platform}. Trying browser sharing instead.`);
-      onShareClick();
       setPlatformLoading(null);
+      handleBrowserShare();
+    }
+  };
+
+  const handleBrowserShare = async () => {
+    try {
+      setBrowserShareLoading(true);
+      await onShareClick();
+      console.log(`Shared via browser share API`);
+    } catch (error) {
+      console.error('Browser sharing error:', error);
+      toast.error('Failed to share via browser. Please try copying the text and sharing manually.');
+    } finally {
+      setBrowserShareLoading(false);
     }
   };
 
@@ -92,7 +105,7 @@ const SocialSharing: React.FC<SocialSharingProps> = ({
         <Button
           className={`w-full text-white ${selectedPlatformDetails.color} mb-2`}
           onClick={() => handleDirectShare(selectedPlatformDetails.name)}
-          disabled={isSharing || platformLoading === selectedPlatformDetails.name}
+          disabled={isSharing || platformLoading === selectedPlatformDetails.name || browserShareLoading}
         >
           {platformLoading === selectedPlatformDetails.name ? (
             <div className="h-4 w-4 border-t-2 border-r-2 border-white rounded-full animate-spin mr-2"></div>
@@ -106,10 +119,10 @@ const SocialSharing: React.FC<SocialSharingProps> = ({
       {/* Fallback browser sharing option */}
       <Button
         className="w-full bg-purple-600 hover:bg-purple-700 text-white"
-        onClick={() => handleDirectShare('Browser')}
-        disabled={isSharing || platformLoading === 'Browser'}
+        onClick={handleBrowserShare}
+        disabled={isSharing || browserShareLoading || !!platformLoading}
       >
-        {platformLoading === 'Browser' ? (
+        {browserShareLoading ? (
           <div className="h-4 w-4 border-t-2 border-r-2 border-white rounded-full animate-spin mr-2"></div>
         ) : (
           <Share className="h-4 w-4 mr-2" />
@@ -133,7 +146,7 @@ const SocialSharing: React.FC<SocialSharingProps> = ({
               size="sm" 
               className="w-full" 
               onClick={() => handleDirectShare(platform.name)}
-              disabled={platformLoading === platform.name}
+              disabled={platformLoading === platform.name || !!platformLoading || browserShareLoading}
             >
               {platformLoading === platform.name ? (
                 <div className="h-4 w-4 border-t-2 border-r-2 border-blue-500 rounded-full animate-spin mr-1"></div>
