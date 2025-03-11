@@ -532,7 +532,7 @@ export const sharePreview = async (
                     files: [mediaFile]
                   });
                   
-                  toast.dismiss(loadingToastId);
+                  toast.dismiss(loadingToastId);\
                   return { 
                     status: 'shared', 
                     message: 'Video shared successfully!' 
@@ -914,4 +914,4 @@ export const downloadPreview = async (
         // Use a more reliable way to capture the content
         html2canvas(sharableContent as HTMLElement, {
           useCORS: true,
-          allowT
+          allow
