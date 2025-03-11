@@ -147,7 +147,9 @@ const CaptionGenerator: React.FC = () => {
       }
       
       const mediaType: MediaType = isTextOnly ? 'text-only' : selectedMedia?.type.startsWith('video') ? 'video' : 'image';
-      await downloadPreview(previewRef, mediaType, currentCaption);
+      const captionStyle: CaptionStyle = 'standard';
+      
+      await downloadPreview(previewRef, mediaType, currentCaption, undefined, captionStyle);
       toast.success('Content downloaded successfully!');
     } catch (error: any) {
       console.error('Download error:', error);

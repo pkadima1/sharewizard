@@ -59,7 +59,7 @@ const SocialSharing: React.FC<SocialSharingProps> = ({
             fileShareSupported = 
               typeof navigator.canShare === 'function' && 
               typeof navigator.share === 'function' && 
-              'files' in new ShareData();
+              'files' in new window.ShareData();
             console.log('File sharing capability for videos (estimated):', fileShareSupported);
           }
         } catch (error) {

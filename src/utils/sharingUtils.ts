@@ -1,8 +1,39 @@
-
 import html2canvas from 'html2canvas';
 import { toast } from "sonner";
 import { getStorage, ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { MediaType, Caption, CaptionStyle, DownloadOptions } from '@/types/mediaTypes';
+
+// Helper function to check if Web Share API is supported
+export const isWebShareSupported = (): boolean => {
+  return typeof navigator !== 'undefined' && !!navigator.share;
+};
+
+// Helper function to check if file sharing is supported
+export const isFileShareSupported = (): boolean => {
+  return typeof navigator !== 'undefined' && 
+         !!navigator.share && 
+         !!navigator.canShare &&
+         typeof FileSystemFileHandle !== 'undefined';
+};
+
+// Helper function to download a blob as a file
+function downloadBlobAsFile(blob: Blob, filename: string, toastId: string | number | undefined): void {
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  
+  // Cleanup
+  setTimeout(() => {
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+    if (toastId) {
+      toast.success('Download complete!', { id: toastId });
+    }
+  }, 100);
+}
 
 // Helper function to create video with caption overlay
 export const createCaptionedVideo = async (
@@ -196,7 +227,7 @@ function drawHandwrittenOverlay(
   
   // CTA with proper styling
   if (caption.cta) {
-    ctx.font = '28px "Segoe Script\", \"Brush Script MT\", \"Comic Sans MS\", cursive';
+    ctx.font = '28px "Segoe Script", "Brush Script MT", "Comic Sans MS", cursive';
     ctx.fillStyle = '#e2e8f0'; // Light color for CTA
     ctx.fillText(truncateText(caption.cta, ctx, width * 0.9), width / 2, height * 0.75);
   }
@@ -441,25 +472,6 @@ const uploadToFirebase = async (blob: Blob, caption: Caption, mediaType: MediaTy
   await uploadBytes(storageRef, blob);
   return await getDownloadURL(storageRef);
 };
-
-// Helper function to download a blob as a file
-function downloadBlobAsFile(blob: Blob, filename: string, toastId: string | number | undefined): void {
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href = url;
-  a.download = filename;
-  document.body.appendChild(a);
-  a.click();
-  
-  // Cleanup
-  setTimeout(() => {
-    document.body.removeChild(a);
-    URL.revokeObjectURL(url);
-    if (toastId) {
-      toast.success('Download complete!', { id: toastId });
-    }
-  }, 100);
-}
 
 // Share preview function - Updated for proper media sharing
 export const sharePreview = async (
@@ -907,72 +919,4 @@ export const downloadPreview = async (
         });
       }
       
-      toast.loading('Processing video with captions...', { id: loadingToastId });
-      console.log('Processing video with dimensions:', video.videoWidth, 'x', video.videoHeight);
-      
-      try {
-        // Create captioned video with overlay
-        const captionedVideoBlob = await createCaptionedVideo(video, caption, captionStyle);
-        console.log('Captioned video blob created:', captionedVideoBlob.size, 'bytes');
-        
-        // Download the processed video
-        downloadBlobAsFile(
-          captionedVideoBlob,
-          filename || `${defaultFilename}.webm`, 
-          loadingToastId
-        );
-      } catch (videoProcessingError) {
-        console.error('Video processing error:', videoProcessingError);
-        toast.error('Failed to process video with captions', { id: loadingToastId });
-        throw videoProcessingError;
-      }
-    } else {
-      // For image or text, create a screenshot
-      try {
-        toast.loading(`Capturing content...`, { id: loadingToastId });
-        
-        // Use a more reliable way to capture the content
-        const canvas = await html2canvas(sharableContent as HTMLElement, {
-          useCORS: true,
-          allowTaint: false,
-          scale: window.devicePixelRatio * 2,
-          logging: false,
-          backgroundColor: getComputedStyle(document.documentElement)
-            .getPropertyValue('--background') || '#1e1e1e',
-          ignoreElements: (element) => {
-            // Ignore any elements that shouldn't be captured
-            return element.classList.contains('social-share-buttons') ||
-                  element.classList.contains('preview-controls');
-          }
-        });
-        
-        console.log('Content captured, preparing for download');
-        
-        // Convert to blob
-        const contentBlob = await new Promise<Blob>((resolve, reject) => {
-          canvas.toBlob(
-            (blob) => blob ? resolve(blob) : reject(new Error('Failed to create blob')),
-            'image/png',
-            0.95 // High quality
-          );
-        });
-        
-        // Download the image
-        downloadBlobAsFile(
-          contentBlob,
-          filename || `${defaultFilename}.png`,
-          loadingToastId
-        );
-      } catch (captureError) {
-        console.error('Error capturing content:', captureError);
-        toast.error('Failed to capture content for download', { id: loadingToastId });
-        throw captureError;
-      }
-    }
-  } catch (error) {
-    console.error('Download error:', error);
-    toast.dismiss(loadingToastId);
-    toast.error('Failed to download content');
-    throw error;
-  }
-};
+      toast.loading('Processing
