@@ -32,7 +32,7 @@ export interface SharingCapabilities {
 // Interface for platform config
 export interface PlatformConfig {
   name: string;
-  icon: React.ComponentType;
+  icon: React.ComponentType<{ className?: string }>;
   color: string;
   shareUrl?: string;
   requiresLogin?: boolean;

@@ -16,8 +16,8 @@ interface MediaPreviewProps {
   currentCaption: GeneratedCaption | null;
   isTextOnly: boolean;
   onEditClick: () => void;
-  onShareClick: () => void;
-  onDownloadClick: () => void;
+  onShareClick: () => Promise<void>;
+  onDownloadClick: () => Promise<void>;
   isSharing: boolean;
   isDownloading: boolean;
   isEditing: boolean;

@@ -1,4 +1,3 @@
-
 import React, { useState, useRef, useCallback } from 'react';
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -58,10 +57,14 @@ const CaptionGenerator: React.FC = () => {
 
     setIsLoading(true);
     try {
-      const newCaptions = await generateCaptions(topic, keywords, temperature);
-      setGeneratedCaptions(newCaptions);
+      const captionStyle: CaptionStyle = 'standard';
+      const platform = '';
+      const newCaptions = await generateCaptions(topic, keywords, temperature, captionStyle, platform);
+      
+      const captionsArray = Array.isArray(newCaptions) ? newCaptions : [newCaptions]; 
+      setGeneratedCaptions(captionsArray);
       setSelectedCaptionIndex(0);
-      setCurrentCaption(newCaptions[0]);
+      setCurrentCaption(captionsArray[0]);
       toast.success('Captions generated successfully!');
     } catch (error: any) {
       console.error('Error generating captions:', error);

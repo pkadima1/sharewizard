@@ -203,6 +203,8 @@ const SocialSharing: React.FC<SocialSharingProps> = ({
           // Skip the platform that's already selected for the main button
           if (key === selectedPlatform) return null;
           
+          const IconComponent = platform.icon;
+          
           return (
             <Button 
               key={key}
@@ -215,7 +217,7 @@ const SocialSharing: React.FC<SocialSharingProps> = ({
               {platformLoading === platform.name ? (
                 <div className="h-4 w-4 border-t-2 border-r-2 border-blue-500 rounded-full animate-spin mr-1"></div>
               ) : (
-                <platform.icon className="h-4 w-4 mr-1" />
+                <IconComponent className="h-4 w-4 mr-1" />
               )}
               {platform.name}
             </Button>
