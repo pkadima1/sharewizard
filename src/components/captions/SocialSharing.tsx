@@ -1,28 +1,24 @@
 
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { Button } from "@/components/ui/button";
 import { Share, Instagram, Facebook, Twitter, Linkedin, Youtube, Music } from 'lucide-react';
 import { toast } from "sonner";
 import { shareToPlatform } from '@/utils/socialMediaUtils';
-import { MediaType } from '@/types/mediaTypes';
-import { isWebShareSupported, isFileShareSupported, sharePreview } from '@/utils/sharingUtils';
+import { MediaType, Caption } from '@/types/mediaTypes';
+import { sharePreview } from '@/utils/sharingUtils';
+import useSharingCapabilities from '@/hooks/useSharingCapabilities';
+import { PlatformConfig } from '@/types/sharingTypes';
 
-// Declare the ShareData interface to fix the error
-interface ShareData {
-  title?: string;
-  text?: string;
-  url?: string;
-  files?: File[];
-}
-
-// Add ShareData to the global Window object
-declare global {
-  interface Window {
-    ShareData: {
-      new(): ShareData;
-      prototype: ShareData;
-    }
-  }
+// Define interface for component props
+interface SocialSharingProps {
+  isEditing: boolean;
+  isSharing: boolean;
+  onShareClick: () => Promise<void>;
+  selectedPlatform?: string;
+  caption: Caption;
+  mediaType?: MediaType;
+  previewUrl?: string | null;
+  previewRef?: React.RefObject<HTMLDivElement>;
 }
 
 const SocialSharing: React.FC<SocialSharingProps> = ({
@@ -37,52 +33,9 @@ const SocialSharing: React.FC<SocialSharingProps> = ({
 }) => {
   const [platformLoading, setPlatformLoading] = useState<string | null>(null);
   const [browserShareLoading, setBrowserShareLoading] = useState<boolean>(false);
-  const [hasCheckedCapabilities, setHasCheckedCapabilities] = useState<boolean>(false);
-  const [canShareFiles, setCanShareFiles] = useState<boolean>(false);
   
-  // Check sharing capabilities on component mount
-  useEffect(() => {
-    const checkSharingCapabilities = async () => {
-      const webShareSupported = isWebShareSupported();
-      let fileShareSupported = false;
-      
-      if (webShareSupported) {
-        // Actually test if the browser can share files, not just check for API presence
-        try {
-          if (mediaType === 'image') {
-            // Create a small test image file
-            const testCanvas = document.createElement('canvas');
-            testCanvas.width = 10;
-            testCanvas.height = 10;
-            const testBlob = await new Promise<Blob>((resolve) => 
-              testCanvas.toBlob((blob) => resolve(blob!), 'image/png')
-            );
-            const testFile = new File([testBlob], 'test.png', { type: 'image/png' });
-            
-            fileShareSupported = navigator.canShare && navigator.canShare({ files: [testFile] });
-            console.log('File sharing capability for images:', fileShareSupported);
-          } else if (mediaType === 'video') {
-            // We can't easily create a test video, so we'll make a conservative estimate
-            fileShareSupported = 
-              typeof navigator.canShare === 'function' && 
-              typeof navigator.share === 'function' && 
-              'files' in new window.ShareData();
-            console.log('File sharing capability for videos (estimated):', fileShareSupported);
-          }
-        } catch (error) {
-          console.warn('Error testing file sharing capability:', error);
-          fileShareSupported = false;
-        }
-      }
-      
-      setCanShareFiles(fileShareSupported);
-      setHasCheckedCapabilities(true);
-      console.log('Web Share API supported:', webShareSupported);
-      console.log('File sharing supported:', fileShareSupported);
-    };
-    
-    checkSharingCapabilities();
-  }, [mediaType]);
+  // Use our custom hook to check sharing capabilities
+  const { capabilities, isChecking } = useSharingCapabilities(mediaType);
   
   if (isEditing) return null;
 
@@ -163,7 +116,7 @@ const SocialSharing: React.FC<SocialSharingProps> = ({
   };
 
   // Define platform icons and details
-  const platforms = {
+  const platforms: Record<string, PlatformConfig> = {
     instagram: { name: 'Instagram', icon: Instagram, color: 'bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600' },
     twitter: { name: 'Twitter', icon: Twitter, color: 'bg-blue-500 hover:bg-blue-600' },
     facebook: { name: 'Facebook', icon: Facebook, color: 'bg-blue-600 hover:bg-blue-700' },
@@ -179,15 +132,15 @@ const SocialSharing: React.FC<SocialSharingProps> = ({
 
   // Display a different sharing message based on media type and capabilities
   const getBrowserShareText = () => {
-    if (!hasCheckedCapabilities) return "Share via Browser";
+    if (isChecking) return "Share via Browser";
     
     if (mediaType === 'video') {
-      if (canShareFiles) {
+      if (capabilities.fileShareSupported) {
         return "Share via Browser (with video)";
       }
       return "Share via Browser (caption only, video opens separately)";
     } else if (mediaType === 'image') {
-      if (canShareFiles) {
+      if (capabilities.fileShareSupported) {
         return "Share via Browser (with image)";
       }
       return "Share via Browser (caption only)";
@@ -229,13 +182,13 @@ const SocialSharing: React.FC<SocialSharingProps> = ({
         {getBrowserShareText()}
       </Button>
       
-      {!isWebShareSupported() && (
+      {!capabilities.webShareSupported && !isChecking && (
         <div className="text-xs text-amber-500 dark:text-amber-400">
           Your browser doesn't support Web Share API. Content will be copied to clipboard.
         </div>
       )}
       
-      {isWebShareSupported() && mediaType !== 'text-only' && !canShareFiles && hasCheckedCapabilities && (
+      {capabilities.webShareSupported && mediaType !== 'text-only' && !capabilities.fileShareSupported && !isChecking && (
         <div className="text-xs text-amber-500 dark:text-amber-400">
           Your browser doesn't support sharing files directly. Caption will be shared, and media will open in a new tab.
         </div>

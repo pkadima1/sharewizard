@@ -1,3 +1,4 @@
+
 import html2canvas from 'html2canvas';
 import { toast } from "sonner";
 import { getStorage, ref, uploadBytes, getDownloadURL } from 'firebase/storage';
@@ -919,4 +920,80 @@ export const downloadPreview = async (
         });
       }
       
-      toast
+      toast.loading('Processing video...', { id: loadingToastId });
+      
+      try {
+        // Create captioned video with overlay
+        const captionedVideoBlob = await createCaptionedVideo(video, caption, captionStyle);
+        
+        // Download the processed video
+        const videoFilename = filename || `${defaultFilename}.webm`;
+        downloadBlobAsFile(captionedVideoBlob, videoFilename, loadingToastId);
+        
+      } catch (error) {
+        console.error('Error processing video for download:', error);
+        toast.error('Failed to process video', { id: loadingToastId });
+        throw error;
+      }
+    } else if (mediaType === 'image') {
+      // For image content
+      toast.loading('Capturing image...', { id: loadingToastId });
+      
+      try {
+        // Use html2canvas to capture the entire content
+        const canvas = await html2canvas(sharableContent as HTMLElement, {
+          useCORS: true,
+          scale: window.devicePixelRatio * 2, // Better quality with higher scale
+          backgroundColor: getComputedStyle(document.documentElement)
+            .getPropertyValue('--background') || '#1e1e1e',
+          ignoreElements: (element) => {
+            // Ignore any elements that shouldn't be captured
+            return element.classList.contains('social-share-buttons') ||
+                  element.classList.contains('preview-controls');
+          }
+        });
+        
+        // Convert canvas to blob
+        const imageBlob = await new Promise<Blob>((resolve, reject) => {
+          canvas.toBlob(
+            (b) => b ? resolve(b) : reject(new Error('Failed to create image blob')), 
+            'image/png', 
+            0.95  // High quality
+          );
+        });
+        
+        // Download the image
+        const imageFilename = filename || `${defaultFilename}.png`;
+        downloadBlobAsFile(imageBlob, imageFilename, loadingToastId);
+        
+      } catch (error) {
+        console.error('Error capturing image for download:', error);
+        toast.error('Failed to capture image', { id: loadingToastId });
+        throw error;
+      }
+    } else {
+      // For text-only content
+      try {
+        // Format the caption text
+        const formattedCaption = `${caption.title}\n\n${caption.caption}\n\n${caption.cta}\n\n${caption.hashtags.map(tag => `#${tag}`).join(' ')}`;
+        
+        // Create a blob from the text
+        const textBlob = new Blob([formattedCaption], { type: 'text/plain' });
+        
+        // Download the text file
+        const textFilename = filename || `${defaultFilename}.txt`;
+        downloadBlobAsFile(textBlob, textFilename, loadingToastId);
+        
+      } catch (error) {
+        console.error('Error creating text file:', error);
+        toast.error('Failed to create text file', { id: loadingToastId });
+        throw error;
+      }
+    }
+  } catch (error) {
+    // Handle any unexpected errors
+    console.error('Download error:', error);
+    toast.error('Download failed', { id: loadingToastId });
+    throw error;
+  }
+};
