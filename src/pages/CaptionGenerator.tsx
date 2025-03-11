@@ -8,7 +8,7 @@ import { toast } from "sonner";
 import { Copy, Check } from 'lucide-react';
 import MediaPreview from '@/components/captions/MediaPreview';
 import SocialSharing from '@/components/captions/SocialSharing';
-import { generateCaption } from '@/services/openaiService';
+import { generateCaptions } from '@/services/openaiService';
 import { downloadPreview, sharePreview } from '@/utils/sharingUtils';
 import { MediaType, CaptionStyle } from '@/types/mediaTypes';
 import { Switch } from "@/components/ui/switch";
@@ -57,7 +57,7 @@ const CaptionGenerator: React.FC = () => {
 
     setIsLoading(true);
     try {
-      const newCaptions = await generateCaption(topic, keywords, temperature);
+      const newCaptions = await generateCaptions(topic, keywords, temperature);
       setGeneratedCaptions(newCaptions);
       setSelectedCaptionIndex(0);
       setCurrentCaption(newCaptions[0]);
@@ -111,14 +111,26 @@ const CaptionGenerator: React.FC = () => {
 
   const handleShareClick = async () => {
     setIsSharing(true);
+    console.log("Starting share process with ref:", previewRef.current);
+    
     try {
       if (!previewRef.current || !currentCaption) {
         throw new Error('Preview or caption not available for sharing.');
       }
       
-      const mediaType: MediaType = isTextOnly ? 'text-only' : selectedMedia?.type.startsWith('video') ? 'video' : 'image';
-      await sharePreview(previewRef, currentCaption, mediaType);
-      toast.success('Content shared successfully!');
+      const mediaType: MediaType = isTextOnly ? 'text-only' : 
+                                  selectedMedia?.type.startsWith('video') ? 'video' : 'image';
+      
+      console.log("Sharing with media type:", mediaType, "Selected media:", selectedMedia);
+      
+      const result = await sharePreview(previewRef, currentCaption, mediaType);
+      console.log("Share result:", result);
+      
+      if (result.status === 'shared') {
+        toast.success(result.message || 'Content shared successfully!');
+      } else if (result.status === 'fallback') {
+        toast.info(result.message || 'Used alternative sharing method.');
+      }
     } catch (error: any) {
       console.error('Sharing error:', error);
       toast.error(error?.message || 'Failed to share content.');
@@ -262,7 +274,7 @@ const CaptionGenerator: React.FC = () => {
         </div>
         
         {/* Right column with preview */}
-        <div className="md:col-span-2 space-y-6">
+        <div className="md:col-span-1 md:row-span-2">
           {/* Pass the previewRef to MediaPreview */}
           <MediaPreview
             ref={previewRef}

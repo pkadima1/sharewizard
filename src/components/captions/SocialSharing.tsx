@@ -30,9 +30,52 @@ const SocialSharing: React.FC<SocialSharingProps> = ({
 }) => {
   const [platformLoading, setPlatformLoading] = useState<string | null>(null);
   const [browserShareLoading, setBrowserShareLoading] = useState<boolean>(false);
+  const [hasCheckedCapabilities, setHasCheckedCapabilities] = useState<boolean>(false);
+  const [canShareFiles, setCanShareFiles] = useState<boolean>(false);
   
-  const supportsWebShare = isWebShareSupported();
-  const supportsFileShare = isFileShareSupported();
+  // Check sharing capabilities on component mount
+  useEffect(() => {
+    const checkSharingCapabilities = async () => {
+      const webShareSupported = isWebShareSupported();
+      let fileShareSupported = false;
+      
+      if (webShareSupported) {
+        // Actually test if the browser can share files, not just check for API presence
+        try {
+          if (mediaType === 'image') {
+            // Create a small test image file
+            const testCanvas = document.createElement('canvas');
+            testCanvas.width = 10;
+            testCanvas.height = 10;
+            const testBlob = await new Promise<Blob>((resolve) => 
+              testCanvas.toBlob((blob) => resolve(blob!), 'image/png')
+            );
+            const testFile = new File([testBlob], 'test.png', { type: 'image/png' });
+            
+            fileShareSupported = navigator.canShare && navigator.canShare({ files: [testFile] });
+            console.log('File sharing capability for images:', fileShareSupported);
+          } else if (mediaType === 'video') {
+            // We can't easily create a test video, so we'll make a conservative estimate
+            fileShareSupported = 
+              typeof navigator.canShare === 'function' && 
+              typeof navigator.share === 'function' && 
+              'files' in new ShareData();
+            console.log('File sharing capability for videos (estimated):', fileShareSupported);
+          }
+        } catch (error) {
+          console.warn('Error testing file sharing capability:', error);
+          fileShareSupported = false;
+        }
+      }
+      
+      setCanShareFiles(fileShareSupported);
+      setHasCheckedCapabilities(true);
+      console.log('Web Share API supported:', webShareSupported);
+      console.log('File sharing supported:', fileShareSupported);
+    };
+    
+    checkSharingCapabilities();
+  }, [mediaType]);
   
   if (isEditing) return null;
 
@@ -68,15 +111,18 @@ const SocialSharing: React.FC<SocialSharingProps> = ({
   const handleBrowserShare = async () => {
     try {
       setBrowserShareLoading(true);
+      console.log("Starting browser share with previewRef:", previewRef?.current);
       
       // Ensure we don't trigger any platform loading indicators
       setPlatformLoading(null);
       
       // Direct Web Share API implementation for better media sharing
-      if (previewRef && caption && mediaType !== 'text-only') {
-        console.log("Using enhanced Web Share API for media sharing");
+      if (previewRef && previewRef.current && caption) {
+        console.log("Using enhanced Web Share API for sharing", mediaType);
+        
         try {
-          const result = await sharePreview(previewRef, caption, mediaType);
+          // Use the sharePreview function directly from here for better control
+          const result = await sharePreview(previewRef, caption, mediaType || 'text-only');
           
           if (result.status === 'shared') {
             toast.success(result.message || "Shared successfully!");
@@ -91,8 +137,11 @@ const SocialSharing: React.FC<SocialSharingProps> = ({
           return;
         } catch (shareError) {
           console.error("Enhanced sharing failed:", shareError);
+          toast.error("Sharing failed. Using fallback method.");
           // Continue to fallback method if enhanced sharing fails
         }
+      } else {
+        console.warn("Missing previewRef or caption for enhanced sharing");
       }
       
       // Fall back to parent component's share function if enhanced sharing fails
@@ -121,15 +170,17 @@ const SocialSharing: React.FC<SocialSharingProps> = ({
     ? platforms[selectedPlatform as keyof typeof platforms] 
     : null;
 
-  // Display a different sharing message based on media type
+  // Display a different sharing message based on media type and capabilities
   const getBrowserShareText = () => {
+    if (!hasCheckedCapabilities) return "Share via Browser";
+    
     if (mediaType === 'video') {
-      if (supportsFileShare) {
+      if (canShareFiles) {
         return "Share via Browser (with video)";
       }
       return "Share via Browser (caption only, video opens separately)";
     } else if (mediaType === 'image') {
-      if (supportsFileShare) {
+      if (canShareFiles) {
         return "Share via Browser (with image)";
       }
       return "Share via Browser (caption only)";
@@ -171,9 +222,15 @@ const SocialSharing: React.FC<SocialSharingProps> = ({
         {getBrowserShareText()}
       </Button>
       
-      {!supportsWebShare && (
+      {!isWebShareSupported() && (
         <div className="text-xs text-amber-500 dark:text-amber-400">
           Your browser doesn't support Web Share API. Content will be copied to clipboard.
+        </div>
+      )}
+      
+      {isWebShareSupported() && mediaType !== 'text-only' && !canShareFiles && hasCheckedCapabilities && (
+        <div className="text-xs text-amber-500 dark:text-amber-400">
+          Your browser doesn't support sharing files directly. Caption will be shared, and media will open in a new tab.
         </div>
       )}
       

@@ -1,5 +1,5 @@
 
-import React, { forwardRef, useRef, useEffect } from 'react';
+import React, { forwardRef, useRef, useEffect, ForwardedRef } from 'react';
 import { Switch } from "@/components/ui/switch";
 import { Button } from "@/components/ui/button";
 import { Edit, Share, Download } from 'lucide-react';
@@ -39,6 +39,21 @@ const MediaPreview = forwardRef<HTMLDivElement, MediaPreviewProps>(({
 }, ref) => {
   const videoRef = useRef<HTMLVideoElement>(null);
   const imageRef = useRef<HTMLImageElement>(null);
+  
+  // Convert ForwardedRef to RefObject for the SocialSharing component
+  const previewRefObject = React.useRef<HTMLDivElement | null>(null);
+  
+  // Sync the forwarded ref with our ref object
+  useEffect(() => {
+    if (typeof ref === 'function') {
+      const currentElement = previewRefObject.current;
+      if (currentElement) {
+        ref(currentElement);
+      }
+    } else if (ref && 'current' in ref) {
+      ref.current = previewRefObject.current;
+    }
+  }, [ref]);
   
   // Ensure media elements have crossOrigin attribute set for sharing
   useEffect(() => {
@@ -113,7 +128,7 @@ const MediaPreview = forwardRef<HTMLDivElement, MediaPreviewProps>(({
         </div>
         
         <div 
-          ref={ref}
+          ref={previewRefObject}
           className="rounded-md overflow-hidden bg-white dark:bg-gray-900"
         >
           <div id="sharable-content" className={isTextOnly ? 'p-6' : ''}>
@@ -219,7 +234,7 @@ const MediaPreview = forwardRef<HTMLDivElement, MediaPreviewProps>(({
                 caption={currentCaption}
                 mediaType={getMediaType()}
                 previewUrl={previewUrl}
-                previewRef={ref}
+                previewRef={previewRefObject}
               />
             </div>
           </>
