@@ -7,15 +7,22 @@ import { shareToPlatform } from '@/utils/socialMediaUtils';
 import { MediaType } from '@/types/mediaTypes';
 import { isWebShareSupported, isFileShareSupported, sharePreview } from '@/utils/sharingUtils';
 
-interface SocialSharingProps {
-  isEditing: boolean;
-  isSharing: boolean;
-  onShareClick: () => void;
-  selectedPlatform?: string;
-  caption?: any;
-  mediaType?: MediaType;
-  previewUrl?: string | null;
-  previewRef?: React.RefObject<HTMLDivElement>;
+// Declare the ShareData interface to fix the error
+interface ShareData {
+  title?: string;
+  text?: string;
+  url?: string;
+  files?: File[];
+}
+
+// Add ShareData to the global Window object
+declare global {
+  interface Window {
+    ShareData: {
+      new(): ShareData;
+      prototype: ShareData;
+    }
+  }
 }
 
 const SocialSharing: React.FC<SocialSharingProps> = ({

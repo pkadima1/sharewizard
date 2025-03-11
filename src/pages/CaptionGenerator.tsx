@@ -1,3 +1,4 @@
+
 import React, { useState, useRef, useCallback } from 'react';
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -10,7 +11,7 @@ import MediaPreview from '@/components/captions/MediaPreview';
 import SocialSharing from '@/components/captions/SocialSharing';
 import { generateCaptions } from '@/services/openaiService';
 import { downloadPreview, sharePreview } from '@/utils/sharingUtils';
-import { MediaType, CaptionStyle } from '@/types/mediaTypes';
+import { MediaType, CaptionStyle, Caption } from '@/types/mediaTypes';
 import { Switch } from "@/components/ui/switch";
 import { Slider } from "@/components/ui/slider";
 import { Separator } from "@/components/ui/separator";
@@ -18,7 +19,7 @@ import { Separator } from "@/components/ui/separator";
 const CaptionGenerator: React.FC = () => {
   const [topic, setTopic] = useState('');
   const [keywords, setKeywords] = useState('');
-  const [generatedCaptions, setGeneratedCaptions] = useState<any[]>([]);
+  const [generatedCaptions, setGeneratedCaptions] = useState<Caption[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [isCopying, setIsCopying] = useState(false);
   const [selectedCaptionIndex, setSelectedCaptionIndex] = useState<number | null>(null);
@@ -26,7 +27,7 @@ const CaptionGenerator: React.FC = () => {
   const [selectedMedia, setSelectedMedia] = useState<File | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [captionOverlayMode, setCaptionOverlayMode] = useState<'overlay' | 'below'>('below');
-  const [currentCaption, setCurrentCaption] = useState<any | null>(null);
+  const [currentCaption, setCurrentCaption] = useState<Caption | null>(null);
   const [isSharing, setIsSharing] = useState(false);
   const [isDownloading, setIsDownloading] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
