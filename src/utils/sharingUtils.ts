@@ -195,7 +195,7 @@ function drawHandwrittenOverlay(
   
   // CTA with proper styling
   if (caption.cta) {
-    ctx.font = '28px "Segoe Script", "Brush Script MT", "Comic Sans MS", cursive';
+    ctx.font = '28px "Segoe Script\", \"Brush Script MT\", \"Comic Sans MS\", cursive';
     ctx.fillStyle = '#e2e8f0'; // Light color for CTA
     ctx.fillText(truncateText(caption.cta, ctx, width * 0.9), width / 2, height * 0.75);
   }
@@ -441,6 +441,25 @@ const uploadToFirebase = async (blob: Blob, caption: Caption, mediaType: MediaTy
   return await getDownloadURL(storageRef);
 };
 
+// Helper function to download a blob as a file
+function downloadBlobAsFile(blob: Blob, filename: string, toastId: string | number | undefined): void {
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  
+  // Cleanup
+  setTimeout(() => {
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+    if (toastId) {
+      toast.success('Download complete!', { id: toastId });
+    }
+  }, 100);
+}
+
 // Share preview function - Updated for proper media sharing
 export const sharePreview = async (
   previewRef: React.RefObject<HTMLDivElement>,
@@ -532,7 +551,7 @@ export const sharePreview = async (
                     files: [mediaFile]
                   });
                   
-                  toast.dismiss(loadingToastId);\
+                  toast.dismiss(loadingToastId);
                   return { 
                     status: 'shared', 
                     message: 'Video shared successfully!' 
@@ -896,22 +915,4 @@ export const downloadPreview = async (
         console.log('Captioned video blob created:', captionedVideoBlob.size, 'bytes');
         
         // Download the processed video
-        downloadBlobAsFile(
-          captionedVideoBlob,
-          filename || `${defaultFilename}.webm`, 
-          loadingToastId
-        );
-      } catch (videoProcessingError) {
-        console.error('Video processing error:', videoProcessingError);
-        toast.error('Failed to process video with captions', { id: loadingToastId });
-        throw videoProcessingError;
-      }
-    } else {
-      // For image or text, create a screenshot
-      try {
-        toast.loading(`Capturing content...`, { id: loadingToastId });
-        
-        // Use a more reliable way to capture the content
-        html2canvas(sharableContent as HTMLElement, {
-          useCORS: true,
-          allow
+        downloadBlobAs
