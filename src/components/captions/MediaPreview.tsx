@@ -1,12 +1,11 @@
 
-import React, { forwardRef, useRef, useEffect, ForwardedRef } from 'react';
+import React, { forwardRef, useRef } from 'react';
 import { Switch } from "@/components/ui/switch";
 import { Button } from "@/components/ui/button";
 import { Edit, Share, Download } from 'lucide-react';
 import { Badge } from "@/components/ui/badge";
 import { GeneratedCaption } from '@/services/openaiService';
 import { MediaType, CaptionStyle } from '@/types/mediaTypes';
-import SocialSharing from './SocialSharing';
 
 interface MediaPreviewProps {
   previewUrl: string | null;
@@ -16,8 +15,8 @@ interface MediaPreviewProps {
   currentCaption: GeneratedCaption | null;
   isTextOnly: boolean;
   onEditClick: () => void;
-  onShareClick: () => Promise<void>;
-  onDownloadClick: () => Promise<void>;
+  onShareClick: () => void;
+  onDownloadClick: () => void;
   isSharing: boolean;
   isDownloading: boolean;
   isEditing: boolean;
@@ -38,43 +37,9 @@ const MediaPreview = forwardRef<HTMLDivElement, MediaPreviewProps>(({
   isEditing
 }, ref) => {
   const videoRef = useRef<HTMLVideoElement>(null);
-  const imageRef = useRef<HTMLImageElement>(null);
-  
-  // Convert ForwardedRef to RefObject for the SocialSharing component
-  const previewRefObject = React.useRef<HTMLDivElement | null>(null);
-  
-  // Sync the forwarded ref with our ref object
-  useEffect(() => {
-    if (typeof ref === 'function') {
-      const currentElement = previewRefObject.current;
-      if (currentElement) {
-        ref(currentElement);
-      }
-    } else if (ref && 'current' in ref) {
-      ref.current = previewRefObject.current;
-    }
-  }, [ref]);
-  
-  // Ensure media elements have crossOrigin attribute set for sharing
-  useEffect(() => {
-    if (videoRef.current) {
-      videoRef.current.crossOrigin = "anonymous";
-    }
-    if (imageRef.current) {
-      imageRef.current.crossOrigin = "anonymous";
-    }
-  }, [previewUrl]);
 
   const handleToggleOverlayMode = () => {
     onCaptionOverlayModeChange(captionOverlayMode === 'overlay' ? 'below' : 'overlay');
-  };
-
-  // Determine media type for sharing
-  const getMediaType = (): MediaType => {
-    if (isTextOnly) return 'text-only';
-    if (selectedMedia?.type.startsWith('video')) return 'video';
-    if (selectedMedia?.type.startsWith('image')) return 'image';
-    return 'text-only';
   };
 
   return (
@@ -128,7 +93,7 @@ const MediaPreview = forwardRef<HTMLDivElement, MediaPreviewProps>(({
         </div>
         
         <div 
-          ref={previewRefObject}
+          ref={ref}
           className="rounded-md overflow-hidden bg-white dark:bg-gray-900"
         >
           <div id="sharable-content" className={isTextOnly ? 'p-6' : ''}>
@@ -137,11 +102,9 @@ const MediaPreview = forwardRef<HTMLDivElement, MediaPreviewProps>(({
                 {selectedMedia && selectedMedia.type.startsWith('image') ? (
                   <div className="aspect-square w-full relative">
                     <img 
-                      ref={imageRef}
                       src={previewUrl} 
                       alt="Preview" 
-                      className="w-full h-full object-cover"
-                      crossOrigin="anonymous"
+                      className="w-full h-full object-cover" 
                     />
                     {captionOverlayMode === 'overlay' && currentCaption && (
                       <div className="absolute bottom-0 left-0 right-0 bg-black bg-opacity-70 p-4 backdrop-blur-sm">
@@ -165,8 +128,6 @@ const MediaPreview = forwardRef<HTMLDivElement, MediaPreviewProps>(({
                       src={previewUrl} 
                       className="w-full h-full object-cover" 
                       controls
-                      crossOrigin="anonymous"
-                      playsInline
                     />
                     {captionOverlayMode === 'overlay' && currentCaption && (
                       <div className="absolute bottom-0 left-0 right-0 bg-black bg-opacity-70 p-4 backdrop-blur-sm">
@@ -212,32 +173,16 @@ const MediaPreview = forwardRef<HTMLDivElement, MediaPreviewProps>(({
         </div>
         
         {!isEditing && (
-          <>
-            <div className="mt-4 flex items-center justify-end">
-              <div className="flex items-center space-x-2">
-                <span className="text-xs text-gray-500 dark:text-gray-400">Caption below</span>
-                <Switch 
-                  checked={captionOverlayMode === 'overlay'} 
-                  onCheckedChange={handleToggleOverlayMode} 
-                />
-                <span className="text-xs text-gray-500 dark:text-gray-400">Caption overlay</span>
-              </div>
-            </div>
-            
-            {/* We now include SocialSharing directly in MediaPreview for better integration */}
-            <div className="mt-4 pt-4 border-t border-gray-200 dark:border-gray-700">
-              <SocialSharing
-                isEditing={isEditing}
-                isSharing={isSharing}
-                onShareClick={onShareClick}
-                selectedPlatform=""
-                caption={currentCaption}
-                mediaType={getMediaType()}
-                previewUrl={previewUrl}
-                previewRef={previewRefObject}
+          <div className="mt-4 flex items-center justify-end">
+            <div className="flex items-center space-x-2">
+              <span className="text-xs text-gray-500 dark:text-gray-400">Caption below</span>
+              <Switch 
+                checked={captionOverlayMode === 'overlay'} 
+                onCheckedChange={handleToggleOverlayMode} 
               />
+              <span className="text-xs text-gray-500 dark:text-gray-400">Caption overlay</span>
             </div>
-          </>
+          </div>
         )}
       </div>
     </div>

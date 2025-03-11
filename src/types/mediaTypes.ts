@@ -9,14 +9,6 @@ export interface Caption {
   hashtags: string[];
 }
 
-// Interface for OpenAI response structure
-export interface CaptionResponse {
-  title: string;
-  caption: string;
-  cta: string;
-  hashtags: string[];
-}
-
 export type CaptionStyle = 'standard' | 'handwritten';
 
 // Enhanced download options for better video quality

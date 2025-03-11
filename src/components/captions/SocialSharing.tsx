@@ -1,24 +1,18 @@
-
-import React, { useState } from 'react';
+import React from 'react';
 import { Button } from "@/components/ui/button";
 import { Share, Instagram, Facebook, Twitter, Linkedin, Youtube, Music } from 'lucide-react';
 import { toast } from "sonner";
 import { shareToPlatform } from '@/utils/socialMediaUtils';
-import { MediaType, Caption } from '@/types/mediaTypes';
-import { sharePreview } from '@/utils/sharingUtils';
-import useSharingCapabilities from '@/hooks/useSharingCapabilities';
-import { PlatformConfig } from '@/types/sharingTypes';
+import { MediaType } from '@/types/mediaTypes';
 
-// Define interface for component props
 interface SocialSharingProps {
   isEditing: boolean;
   isSharing: boolean;
-  onShareClick: () => Promise<void>;
+  onShareClick: () => void;
   selectedPlatform?: string;
-  caption: Caption;
+  caption?: any;
   mediaType?: MediaType;
   previewUrl?: string | null;
-  previewRef?: React.RefObject<HTMLDivElement>;
 }
 
 const SocialSharing: React.FC<SocialSharingProps> = ({
@@ -27,150 +21,59 @@ const SocialSharing: React.FC<SocialSharingProps> = ({
   onShareClick,
   selectedPlatform = '',
   caption,
-  mediaType = 'text-only',
-  previewUrl,
-  previewRef
+  mediaType,
+  previewUrl
 }) => {
-  const [platformLoading, setPlatformLoading] = useState<string | null>(null);
-  const [browserShareLoading, setBrowserShareLoading] = useState<boolean>(false);
-  
-  // Use our custom hook to check sharing capabilities
-  const { capabilities, isChecking } = useSharingCapabilities(mediaType);
-  
   if (isEditing) return null;
 
   const handleDirectShare = async (platform: string) => {
     try {
-      // Set loading state for this specific platform
-      setPlatformLoading(platform);
       toast.info(`Preparing to share on ${platform}...`);
       
-      // Share directly to the selected platform
-      const result = await shareToPlatform(platform.toLowerCase(), {
-        caption,
-        mediaType,
-        mediaUrl: previewUrl
-      });
-      
-      if (result.success) {
-        toast.success(result.message || `Shared to ${platform} successfully!`);
-        console.log(`Shared to ${platform} via API`);
-      } else if (result.error) {
-        // If direct sharing fails, show the error
-        console.warn(`${platform} sharing error: ${result.error}`);
-        toast.error(`Failed to share to ${platform}: ${result.error}`);
+      // If we're trying to share directly to a social platform
+      if (platform.toLowerCase() !== 'browser') {
+        // First try the direct API sharing
+        const result = await shareToPlatform(platform.toLowerCase(), {
+          caption,
+          mediaType,
+          mediaUrl: previewUrl
+        });
+        
+        if (result.success) {
+          toast.success(result.message || `Shared to ${platform} successfully!`);
+          console.log(`Shared to ${platform} via API`);
+          return;
+        } else if (result.error) {
+          // If direct API sharing fails, fall back to browser sharing
+          console.warn(`Direct ${platform} sharing failed: ${result.error}`);
+          toast.warning(`Direct ${platform} sharing unavailable. Falling back to browser sharing.`);
+        }
       }
+      
+      // Fall back to browser sharing
+      onShareClick();
+      console.log(`Shared via browser share API`);
     } catch (error) {
       console.error(`Error sharing to ${platform}:`, error);
-      toast.error(`Failed to share to ${platform}.`);
-    } finally {
-      setPlatformLoading(null);
-    }
-  };
-
-  const handleBrowserShare = async () => {
-    try {
-      setBrowserShareLoading(true);
-      console.log("Starting browser share with previewRef:", previewRef?.current);
-      
-      // Ensure we don't trigger any platform loading indicators
-      setPlatformLoading(null);
-      
-      // Direct Web Share API implementation for better media sharing
-      if (previewRef && previewRef.current && caption) {
-        console.log("Using enhanced Web Share API for sharing", mediaType);
-        
-        try {
-          // Use the sharePreview function directly from here for better control
-          const result = await sharePreview(previewRef, caption, mediaType || 'text-only');
-          
-          if (result.status === 'shared') {
-            toast.success(result.message || "Shared successfully!");
-          } else if (result.status === 'fallback') {
-            toast.info(result.message || "Used fallback sharing method.");
-          } else if (result.status === 'cancelled') {
-            // User cancelled, no need for notification
-            console.log("Share was cancelled by user");
-          }
-          
-          setBrowserShareLoading(false);
-          return;
-        } catch (shareError) {
-          console.error("Enhanced sharing failed:", shareError);
-          toast.error("Sharing failed. Using fallback method.");
-          // Continue to fallback method if enhanced sharing fails
-        }
-      } else {
-        console.warn("Missing previewRef or caption for enhanced sharing");
-      }
-      
-      // Fall back to parent component's share function if enhanced sharing fails
-      await onShareClick();
-      console.log(`Shared via browser share API (fallback method)`);
-    } catch (error) {
-      console.error('Browser sharing error:', error);
-      toast.error('Failed to share. Please try copying the text and sharing manually.');
-    } finally {
-      setBrowserShareLoading(false);
+      toast.error(`Failed to share to ${platform}. Trying browser sharing instead.`);
+      onShareClick();
     }
   };
 
   // Define platform icons and details
-  const platforms: Record<string, PlatformConfig> = {
-    instagram: { 
-      name: 'Instagram', 
-      icon: Instagram, 
-      color: 'bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600' 
-    },
-    twitter: { 
-      name: 'Twitter', 
-      icon: Twitter, 
-      color: 'bg-blue-500 hover:bg-blue-600' 
-    },
-    facebook: { 
-      name: 'Facebook', 
-      icon: Facebook, 
-      color: 'bg-blue-600 hover:bg-blue-700' 
-    },
-    linkedin: { 
-      name: 'LinkedIn', 
-      icon: Linkedin, 
-      color: 'bg-blue-700 hover:bg-blue-800' 
-    },
-    tiktok: { 
-      name: 'TikTok', 
-      icon: Music, 
-      color: 'bg-black hover:bg-gray-900' 
-    },
-    youtube: { 
-      name: 'YouTube', 
-      icon: Youtube, 
-      color: 'bg-red-600 hover:bg-red-700' 
-    }
+  const platforms = {
+    instagram: { name: 'Instagram', icon: Instagram, color: 'bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600' },
+    twitter: { name: 'Twitter', icon: Twitter, color: 'bg-blue-500 hover:bg-blue-600' },
+    facebook: { name: 'Facebook', icon: Facebook, color: 'bg-blue-600 hover:bg-blue-700' },
+    linkedin: { name: 'LinkedIn', icon: Linkedin, color: 'bg-blue-700 hover:bg-blue-800' },
+    tiktok: { name: 'TikTok', icon: Music, color: 'bg-black hover:bg-gray-900' },
+    youtube: { name: 'YouTube', icon: Youtube, color: 'bg-red-600 hover:bg-red-700' }
   };
 
   // Get currently selected platform details, fallback to default
   const selectedPlatformDetails = selectedPlatform && platforms[selectedPlatform as keyof typeof platforms] 
     ? platforms[selectedPlatform as keyof typeof platforms] 
     : null;
-
-  // Display a different sharing message based on media type and capabilities
-  const getBrowserShareText = () => {
-    if (isChecking) return "Share via Browser";
-    
-    if (mediaType === 'video') {
-      if (capabilities.fileShareSupported) {
-        return "Share via Browser (with video)";
-      }
-      return "Share via Browser (caption only, video opens separately)";
-    } else if (mediaType === 'image') {
-      if (capabilities.fileShareSupported) {
-        return "Share via Browser (with image)";
-      }
-      return "Share via Browser (caption only)";
-    }
-    return "Share via Browser (WhatsApp, Telegram, etc.)";
-  };
 
   return (
     <div className="space-y-3">
@@ -181,9 +84,9 @@ const SocialSharing: React.FC<SocialSharingProps> = ({
         <Button
           className={`w-full text-white ${selectedPlatformDetails.color} mb-2`}
           onClick={() => handleDirectShare(selectedPlatformDetails.name)}
-          disabled={isSharing || platformLoading === selectedPlatformDetails.name || browserShareLoading}
+          disabled={isSharing}
         >
-          {platformLoading === selectedPlatformDetails.name ? (
+          {isSharing ? (
             <div className="h-4 w-4 border-t-2 border-r-2 border-white rounded-full animate-spin mr-2"></div>
           ) : (
             <selectedPlatformDetails.icon className="h-4 w-4 mr-2" />
@@ -192,31 +95,19 @@ const SocialSharing: React.FC<SocialSharingProps> = ({
         </Button>
       )}
       
-      {/* Fallback browser sharing option with improved feedback */}
+      {/* Fallback browser sharing option */}
       <Button
         className="w-full bg-purple-600 hover:bg-purple-700 text-white"
-        onClick={handleBrowserShare}
-        disabled={isSharing || browserShareLoading || !!platformLoading}
+        onClick={() => handleDirectShare('Browser')}
+        disabled={isSharing}
       >
-        {browserShareLoading ? (
+        {isSharing ? (
           <div className="h-4 w-4 border-t-2 border-r-2 border-white rounded-full animate-spin mr-2"></div>
         ) : (
           <Share className="h-4 w-4 mr-2" />
         )}
-        {getBrowserShareText()}
+        Share via Browser (WhatsApp, Telegram, etc.)
       </Button>
-      
-      {!capabilities.webShareSupported && !isChecking && (
-        <div className="text-xs text-amber-500 dark:text-amber-400">
-          Your browser doesn't support Web Share API. Content will be copied to clipboard.
-        </div>
-      )}
-      
-      {capabilities.webShareSupported && mediaType !== 'text-only' && !capabilities.fileShareSupported && !isChecking && (
-        <div className="text-xs text-amber-500 dark:text-amber-400">
-          Your browser doesn't support sharing files directly. Caption will be shared, and media will open in a new tab.
-        </div>
-      )}
       
       <div className="text-sm text-gray-500 dark:text-gray-400">
         Or share directly to:
@@ -227,8 +118,6 @@ const SocialSharing: React.FC<SocialSharingProps> = ({
           // Skip the platform that's already selected for the main button
           if (key === selectedPlatform) return null;
           
-          const IconComponent = platform.icon;
-          
           return (
             <Button 
               key={key}
@@ -236,13 +125,8 @@ const SocialSharing: React.FC<SocialSharingProps> = ({
               size="sm" 
               className="w-full" 
               onClick={() => handleDirectShare(platform.name)}
-              disabled={platformLoading === platform.name || !!platformLoading || browserShareLoading}
             >
-              {platformLoading === platform.name ? (
-                <div className="h-4 w-4 border-t-2 border-r-2 border-blue-500 rounded-full animate-spin mr-1"></div>
-              ) : (
-                <IconComponent className="h-4 w-4 mr-1" />
-              )}
+              <platform.icon className="h-4 w-4 mr-1" />
               {platform.name}
             </Button>
           );
