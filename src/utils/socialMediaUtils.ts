@@ -2,6 +2,7 @@
 import { toast } from "sonner";
 import { getStorage, ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { MediaType } from '@/types/mediaTypes';
+import { createCaptionedVideo } from '@/utils/sharingUtils';
 
 interface SharingOptions {
   caption: any;
@@ -15,49 +16,146 @@ interface ShareResult {
   error?: string;
 }
 
+// Helper function to generate a Firebase-hosted URL for sharing
+const getFirebaseShareableUrl = async (mediaUrl: string | null, caption: any, mediaType: MediaType = 'text-only'): Promise<string | null> => {
+  if (!mediaUrl) return null;
+  
+  try {
+    // First check if this is already a Firebase URL
+    if (mediaUrl.includes('firebasestorage.googleapis.com')) {
+      return mediaUrl;
+    }
+    
+    console.log(`Preparing ${mediaType} for sharing to Firebase`);
+    
+    // For videos, we need to process them with captions before uploading
+    if (mediaType === 'video') {
+      try {
+        // Create a temporary video element to load the source
+        const videoElement = document.createElement('video');
+        videoElement.crossOrigin = "anonymous";
+        videoElement.src = mediaUrl;
+        
+        // Wait for the video to be loaded enough to be processed
+        await new Promise<void>((resolve, reject) => {
+          videoElement.onloadeddata = () => resolve();
+          videoElement.onerror = () => reject(new Error("Failed to load video"));
+          videoElement.load();
+        });
+        
+        console.log("Video loaded, processing with captions...");
+        
+        // Process the video with captions
+        const captionedVideoBlob = await createCaptionedVideo(videoElement, caption);
+        
+        // Upload the processed video
+        const storage = getStorage();
+        const timestamp = Date.now();
+        const safeTitle = caption?.title 
+          ? caption.title.toLowerCase().replace(/[^\w]/g, '-').substring(0, 30) 
+          : 'share';
+        const fileName = `shared-media/${safeTitle}-${timestamp}.webm`;
+        const storageRef = ref(storage, fileName);
+        
+        await uploadBytes(storageRef, captionedVideoBlob);
+        return await getDownloadURL(storageRef);
+      } catch (error) {
+        console.error('Error processing video for sharing:', error);
+        // Fall back to the original URL
+        return mediaUrl;
+      }
+    }
+    
+    // For images and other media
+    const response = await fetch(mediaUrl);
+    if (!response.ok) {
+      console.error('Failed to fetch media for Firebase upload');
+      return null;
+    }
+    
+    const blob = await response.blob();
+    const storage = getStorage();
+    const timestamp = Date.now();
+    const safeTitle = caption?.title 
+      ? caption.title.toLowerCase().replace(/[^\w]/g, '-').substring(0, 30) 
+      : 'share';
+    const fileName = `shared-media/${safeTitle}-${timestamp}.${blob.type.includes('video') ? 'mp4' : 'png'}`;
+    const storageRef = ref(storage, fileName);
+    
+    await uploadBytes(storageRef, blob);
+    return await getDownloadURL(storageRef);
+  } catch (error) {
+    console.error('Error preparing media for sharing:', error);
+    return null;
+  }
+};
+
+// Prepare the caption text with proper formatting
+const formatCaptionForSharing = (caption: any): string => {
+  if (!caption) return '';
+  
+  const titleText = caption.title || '';
+  const captionText = caption.caption || '';
+  const ctaText = caption.cta || '';
+  const hashtagsText = Array.isArray(caption.hashtags) 
+    ? caption.hashtags.map((tag: string) => `#${tag}`).join(' ') 
+    : '';
+  
+  return `${titleText}\n\n${captionText}${ctaText ? `\n\n${ctaText}` : ''}${hashtagsText ? `\n\n${hashtagsText}` : ''}`;
+};
+
 // Instagram API sharing function
 export const shareToInstagram = async (options: SharingOptions): Promise<ShareResult> => {
   try {
     const { caption, mediaType, mediaUrl } = options;
     
-    // Check if Instagram API credentials are available
-    const igApiKey = import.meta.env.VITE_INSTAGRAM_CLIENT_SECRET;
-    const igAccessToken = import.meta.env.VITE_INSTAGRAM_ACCESS_TOKEN;
-    const igAppId = import.meta.env.VITE_INSTAGRAM_APP_ID;
+    // Format caption text
+    const formattedText = formatCaptionForSharing(caption);
     
-    if (!igApiKey || !igAccessToken) {
-      console.log('Missing Instagram API credentials');
+    // First upload to Firebase to get a stable URL if needed
+    const shareableUrl = await getFirebaseShareableUrl(mediaUrl || null, caption, mediaType);
+    console.log("Prepared Instagram shareable URL:", shareableUrl);
+    
+    // Copy caption to clipboard for easy pasting
+    try {
+      await navigator.clipboard.writeText(formattedText);
+      toast.info('Caption copied to clipboard for pasting in Instagram!');
+    } catch (err) {
+      console.warn('Could not copy text to clipboard:', err);
+    }
+    
+    // For Instagram, we directly open Instagram.com in mobile or the app intent on supported devices
+    const useNativeApp = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+    
+    if (useNativeApp && shareableUrl) {
+      // On mobile, try to use the app intent
+      window.location.href = `instagram://library?AssetPath=${encodeURIComponent(shareableUrl)}`;
       
-      // Attempt to open Instagram sharing in a new window if we can't use the API
-      if (mediaUrl && typeof window !== 'undefined') {
-        const instagramUrl = `https://www.instagram.com/share?url=${encodeURIComponent(mediaUrl)}`;
-        window.open(instagramUrl, '_blank', 'width=600,height=600');
-        return { 
-          success: true, 
-          message: 'Instagram sharing window opened' 
-        };
+      // Set a timeout to check if the app was opened
+      setTimeout(() => {
+        // Fall back to web if the app didn't open
+        window.open(`https://www.instagram.com/`, '_blank');
+      }, 2500);
+      
+      return { 
+        success: true, 
+        message: 'Opening Instagram... Please complete sharing there.' 
+      };
+    } else {
+      // On desktop, open Instagram.com
+      window.open('https://www.instagram.com/', '_blank');
+      
+      // If we have media, open it in a new tab for saving
+      if (shareableUrl) {
+        window.open(shareableUrl, '_blank');
+        toast.info('Media opened in a new tab for downloading and uploading to Instagram.');
       }
       
       return { 
-        success: false, 
-        error: 'Instagram API credentials not configured.' 
+        success: true, 
+        message: 'Instagram opened. Caption copied to clipboard for pasting!' 
       };
     }
-    
-    if (!mediaUrl && mediaType !== 'text-only') {
-      return { success: false, error: 'Media URL is required for Instagram sharing' };
-    }
-    
-    console.log('Sharing to Instagram with:', { mediaType, captionTitle: caption?.title });
-    
-    // In a real implementation, you would make API calls to the Instagram Graph API
-    // For now, let's simulate a successful API call
-    // In production, you would use the FB Graph API: https://developers.facebook.com/docs/instagram-api/guides/content-publishing
-    
-    return { 
-      success: true, 
-      message: 'Shared to Instagram successfully' 
-    };
   } catch (error) {
     console.error('Instagram sharing error:', error);
     return { 
@@ -67,25 +165,43 @@ export const shareToInstagram = async (options: SharingOptions): Promise<ShareRe
   }
 };
 
-// Twitter API sharing function
+// Twitter/X API sharing function
 export const shareToTwitter = async (options: SharingOptions): Promise<ShareResult> => {
   try {
     const { caption, mediaType, mediaUrl } = options;
     
-    // Check if Twitter API credentials are available
-    const twitterApiKey = import.meta.env.VITE_TWITTER_API_KEY;
-    const twitterAccessToken = import.meta.env.VITE_TWITTER_ACCESS_TOKEN;
-    
-    // For Twitter, we can fall back to the Twitter Web Intent URL
-    const text = `${caption.title}\n\n${caption.caption}\n${caption.hashtags.map(tag => `#${tag}`).join(' ')}`;
-    const twitterShareUrl = `https://twitter.com/intent/tweet?text=${encodeURIComponent(text)}`;
-    
-    if (mediaUrl) {
-      twitterShareUrl + `&url=${encodeURIComponent(mediaUrl)}`;
+    // Format caption text for Twitter (limit to ~280 chars)
+    const tweetText = formatCaptionForSharing(caption);
+    const truncatedText = tweetText.length > 260 
+      ? tweetText.substring(0, 257) + '...' 
+      : tweetText;
+
+    // Copy the text to clipboard
+    try {
+      await navigator.clipboard.writeText(truncatedText);
+      toast.info('Tweet text copied to clipboard for pasting!');
+    } catch (err) {
+      console.warn('Could not copy text to clipboard:', err);
     }
+    
+    // If we have media, prepare it for sharing
+    let shareableUrl = null;
+    if (mediaUrl) {
+      shareableUrl = await getFirebaseShareableUrl(mediaUrl, caption, mediaType);
+    }
+    
+    // For Twitter, use a direct text intent without the Firebase URL to avoid link previews
+    // The user can manually attach the media
+    const twitterShareUrl = `https://twitter.com/intent/tweet?text=${encodeURIComponent(truncatedText)}`;
     
     // Open Twitter share dialog
     window.open(twitterShareUrl, '_blank', 'width=600,height=600');
+    
+    // If we have media, open it in a new tab for saving
+    if (shareableUrl) {
+      window.open(shareableUrl, '_blank');
+      toast.info('Media opened in a new tab for attaching to your tweet.');
+    }
     
     return { 
       success: true, 
@@ -105,29 +221,37 @@ export const shareToFacebook = async (options: SharingOptions): Promise<ShareRes
   try {
     const { caption, mediaType, mediaUrl } = options;
     
-    // Check if Facebook API credentials are available
-    const fbApiKey = import.meta.env.VITE_FACEBOOK_API_KEY;
-    const fbAccessToken = import.meta.env.VITE_FACEBOOK_ACCESS_TOKEN;
+    // Format caption text
+    const formattedText = formatCaptionForSharing(caption);
     
-    // For Facebook, we can fall back to the Facebook Sharer URL
-    let facebookShareUrl = 'https://www.facebook.com/sharer/sharer.php?';
-    
-    if (mediaUrl) {
-      facebookShareUrl += `u=${encodeURIComponent(mediaUrl)}`;
-    } else {
-      // If no media URL, share the caption text
-      const text = `${caption.title}\n\n${caption.caption}`;
-      facebookShareUrl += `quote=${encodeURIComponent(text)}`;
+    // Copy to clipboard for easy pasting
+    try {
+      await navigator.clipboard.writeText(formattedText);
+      toast.info('Post text copied to clipboard for pasting in Facebook!');
+    } catch (err) {
+      console.warn('Could not copy text to clipboard:', err);
     }
     
-    // Open Facebook share dialog
-    window.open(facebookShareUrl, '_blank', 'width=600,height=600');
+    // First upload to Firebase to get a stable URL if needed
+    let shareableUrl = '';
     
-    console.log('Shared to Facebook via web dialog');
+    if (mediaUrl) {
+      const result = await getFirebaseShareableUrl(mediaUrl, caption, mediaType);
+      if (result) {
+        shareableUrl = result;
+        
+        // Open the media in a new tab
+        window.open(shareableUrl, '_blank');
+        toast.info('Media opened in a new tab for downloading and sharing to Facebook.');
+      }
+    }
+    
+    // For Facebook, open the main site and let user paste
+    window.open('https://www.facebook.com/', '_blank', 'width=600,height=600');
     
     return { 
       success: true, 
-      message: 'Facebook sharing window opened' 
+      message: 'Facebook opened. You can paste your caption and upload the media now.' 
     };
   } catch (error) {
     console.error('Facebook sharing error:', error);
@@ -143,25 +267,35 @@ export const shareToLinkedIn = async (options: SharingOptions): Promise<ShareRes
   try {
     const { caption, mediaType, mediaUrl } = options;
     
-    // Check if LinkedIn API credentials are available
-    const linkedinApiKey = import.meta.env.VITE_LINKEDIN_API_KEY;
-    const linkedinAccessToken = import.meta.env.VITE_LINKEDIN_ACCESS_TOKEN;
+    // Format caption text
+    const formattedText = formatCaptionForSharing(caption);
     
-    // For LinkedIn, we can fall back to the LinkedIn Share URL
-    let linkedinShareUrl = 'https://www.linkedin.com/sharing/share-offsite/?';
-    
-    if (mediaUrl) {
-      linkedinShareUrl += `url=${encodeURIComponent(mediaUrl)}`;
+    // Copy text to clipboard for easy pasting
+    try {
+      await navigator.clipboard.writeText(formattedText);
+      toast.info('Post text copied to clipboard for pasting in LinkedIn!');
+    } catch (err) {
+      console.warn('Could not copy text to clipboard:', err);
     }
     
-    // Open LinkedIn share dialog
-    window.open(linkedinShareUrl, '_blank', 'width=600,height=600');
+    // Get shareable URL for the media
+    let shareableUrl = null;
+    if (mediaUrl) {
+      shareableUrl = await getFirebaseShareableUrl(mediaUrl, caption, mediaType);
+      
+      if (shareableUrl) {
+        // Open the media in a new tab for saving
+        window.open(shareableUrl, '_blank');
+        toast.info('Media opened in a new tab for downloading and sharing to LinkedIn.');
+      }
+    }
     
-    console.log('Shared to LinkedIn via web dialog');
+    // Open LinkedIn's post creation page
+    window.open('https://www.linkedin.com/post/new', '_blank');
     
     return { 
       success: true, 
-      message: 'LinkedIn sharing window opened' 
+      message: 'LinkedIn opened. You can paste your text and upload the media now.' 
     };
   } catch (error) {
     console.error('LinkedIn sharing error:', error);
@@ -178,9 +312,32 @@ export const shareToTikTok = async (options: SharingOptions): Promise<ShareResul
     const { caption, mediaType, mediaUrl } = options;
     
     // TikTok doesn't have a standard web share URL like other platforms
-    // We'll need to use their SDK or API in a real implementation
+    // Try to copy caption to clipboard for convenience
+    const shareText = formatCaptionForSharing(caption);
     
-    // As a fallback, we can direct users to the TikTok app or website
+    try {
+      await navigator.clipboard.writeText(shareText);
+      toast.info('Caption copied to clipboard! You can paste it in TikTok.');
+    } catch (err) {
+      console.warn('Could not copy text to clipboard:', err);
+    }
+    
+    // If we have media, upload it to Firebase and open in a new tab for saving
+    if (mediaUrl) {
+      try {
+        const shareableUrl = await getFirebaseShareableUrl(mediaUrl, caption, mediaType);
+        
+        if (shareableUrl) {
+          // Open the media in a new tab for easy saving
+          window.open(shareableUrl, '_blank');
+          toast.info('Media opened in a new tab. Save it and upload to TikTok.');
+        }
+      } catch (error) {
+        console.error('Error preparing media for TikTok:', error);
+      }
+    }
+    
+    // Direct users to TikTok upload page
     toast.info('Opening TikTok. Please upload your media there.');
     window.open('https://www.tiktok.com/upload', '_blank');
     
@@ -209,7 +366,31 @@ export const shareToYouTube = async (options: SharingOptions): Promise<ShareResu
       };
     }
     
-    // YouTube doesn't have a standard web share URL for uploading
+    // Try to copy caption to clipboard for convenience
+    const shareText = formatCaptionForSharing(caption);
+    
+    try {
+      await navigator.clipboard.writeText(shareText);
+      toast.info('Video title and description copied to clipboard! You can paste it in YouTube.');
+    } catch (err) {
+      console.warn('Could not copy text to clipboard:', err);
+    }
+    
+    // If we have media, upload it to Firebase and open in a new tab for saving
+    if (mediaUrl) {
+      try {
+        const shareableUrl = await getFirebaseShareableUrl(mediaUrl, caption, mediaType);
+        
+        if (shareableUrl) {
+          // Open the media in a new tab for easy saving
+          window.open(shareableUrl, '_blank');
+          toast.info('Video opened in a new tab. Save it and upload to YouTube.');
+        }
+      } catch (error) {
+        console.error('Error preparing media for YouTube:', error);
+      }
+    }
+    
     // Direct users to YouTube Studio
     toast.info('Opening YouTube Studio. Please upload your video there.');
     window.open('https://studio.youtube.com/channel/upload', '_blank');
@@ -269,25 +450,7 @@ export const shareToPlatform = async (
 export const uploadMediaForSharing = async (
   mediaUrl: string,
   mediaType: MediaType,
-  filename: string
+  caption: any
 ): Promise<string> => {
-  try {
-    // Fetch the media file
-    const response = await fetch(mediaUrl);
-    if (!response.ok) {
-      throw new Error('Failed to fetch media for sharing');
-    }
-    
-    const blob = await response.blob();
-    
-    // Upload to Firebase
-    const storage = getStorage();
-    const storageRef = ref(storage, `shared-media/${filename}`);
-    
-    await uploadBytes(storageRef, blob);
-    return await getDownloadURL(storageRef);
-  } catch (error) {
-    console.error('Error uploading media for sharing:', error);
-    throw error;
-  }
+  return getFirebaseShareableUrl(mediaUrl, caption, mediaType) || '';
 };
