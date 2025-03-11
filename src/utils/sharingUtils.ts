@@ -605,7 +605,7 @@ export const sharePreview = async (
                 try {
                   await navigator.share({
                     title: shareData.title,
-                    text: formattedCaption
+                    text: shareData.text
                   });
                   console.log("Shared text only via Web Share API");
                 } catch (textShareError) {
@@ -626,7 +626,7 @@ export const sharePreview = async (
               try {
                 await navigator.share({
                   title: shareData.title,
-                  text: formattedCaption
+                  text: shareData.text
                 });
                 
                 toast.dismiss(loadingToastId);
@@ -919,4 +919,4 @@ export const downloadPreview = async (
         });
       }
       
-      toast.loading('Processing
+      toast
