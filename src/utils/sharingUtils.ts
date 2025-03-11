@@ -1,3 +1,4 @@
+
 import html2canvas from 'html2canvas';
 import { toast } from "sonner";
 import { getStorage, ref, uploadBytes, getDownloadURL } from 'firebase/storage';
@@ -915,4 +916,63 @@ export const downloadPreview = async (
         console.log('Captioned video blob created:', captionedVideoBlob.size, 'bytes');
         
         // Download the processed video
-        downloadBlobAs
+        downloadBlobAsFile(
+          captionedVideoBlob,
+          filename || `${defaultFilename}.webm`, 
+          loadingToastId
+        );
+      } catch (videoProcessingError) {
+        console.error('Video processing error:', videoProcessingError);
+        toast.error('Failed to process video with captions', { id: loadingToastId });
+        throw videoProcessingError;
+      }
+    } else {
+      // For image or text, create a screenshot
+      try {
+        toast.loading(`Capturing content...`, { id: loadingToastId });
+        
+        // Use a more reliable way to capture the content
+        const canvas = await html2canvas(sharableContent as HTMLElement, {
+          useCORS: true,
+          allowTaint: false,
+          scale: window.devicePixelRatio * 2,
+          logging: false,
+          backgroundColor: getComputedStyle(document.documentElement)
+            .getPropertyValue('--background') || '#1e1e1e',
+          ignoreElements: (element) => {
+            // Ignore any elements that shouldn't be captured
+            return element.classList.contains('social-share-buttons') ||
+                  element.classList.contains('preview-controls');
+          }
+        });
+        
+        console.log('Content captured, preparing for download');
+        
+        // Convert to blob
+        const contentBlob = await new Promise<Blob>((resolve, reject) => {
+          canvas.toBlob(
+            (blob) => blob ? resolve(blob) : reject(new Error('Failed to create blob')),
+            'image/png',
+            0.95 // High quality
+          );
+        });
+        
+        // Download the image
+        downloadBlobAsFile(
+          contentBlob,
+          filename || `${defaultFilename}.png`,
+          loadingToastId
+        );
+      } catch (captureError) {
+        console.error('Error capturing content:', captureError);
+        toast.error('Failed to capture content for download', { id: loadingToastId });
+        throw captureError;
+      }
+    }
+  } catch (error) {
+    console.error('Download error:', error);
+    toast.dismiss(loadingToastId);
+    toast.error('Failed to download content');
+    throw error;
+  }
+};
