@@ -1,3 +1,4 @@
+
 import React from 'react';
 import html2canvas from 'html2canvas';
 import { toast } from 'sonner';
@@ -260,6 +261,29 @@ export const downloadPreview = async (
 };
 
 /**
+ * Creates a captioned video by overlaying caption on video frames
+ * This is a simplified implementation - in a real app, you'd use a more robust video processing library
+ */
+export const createCaptionedVideo = async (
+  videoElement: HTMLVideoElement,
+  caption: Caption,
+  captionStyle: CaptionStyle = 'standard'
+): Promise<Blob> => {
+  // This is a placeholder implementation
+  // In a real application, you would use a video processing library
+  // or a server-side solution to properly add captions to videos
+  
+  // For now, we'll just return the original video as a blob
+  try {
+    const response = await fetch(videoElement.src);
+    return await response.blob();
+  } catch (error) {
+    console.error('Error creating captioned video:', error);
+    throw new Error('Failed to process video');
+  }
+};
+
+/**
  * Formats a caption object into a shareable text string
  */
 function formatCaptionForSharing(caption: Caption): string {
@@ -321,29 +345,6 @@ async function captureImageFromElement(element: HTMLElement): Promise<Blob> {
       0.95
     );
   });
-}
-
-/**
- * Creates a captioned video by overlaying caption on video frames
- * This is a simplified implementation - in a real app, you'd use a more robust video processing library
- */
-async function createCaptionedVideo(
-  videoElement: HTMLVideoElement,
-  caption: Caption,
-  captionStyle: CaptionStyle
-): Promise<Blob> {
-  // This is a placeholder implementation
-  // In a real application, you would use a video processing library
-  // or a server-side solution to properly add captions to videos
-  
-  // For now, we'll just return the original video as a blob
-  try {
-    const response = await fetch(videoElement.src);
-    return await response.blob();
-  } catch (error) {
-    console.error('Error creating captioned video:', error);
-    throw new Error('Failed to process video');
-  }
 }
 
 /**

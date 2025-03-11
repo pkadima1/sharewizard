@@ -117,12 +117,36 @@ const SocialSharing: React.FC<SocialSharingProps> = ({
 
   // Define platform icons and details
   const platforms: Record<string, PlatformConfig> = {
-    instagram: { name: 'Instagram', icon: Instagram, color: 'bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600' },
-    twitter: { name: 'Twitter', icon: Twitter, color: 'bg-blue-500 hover:bg-blue-600' },
-    facebook: { name: 'Facebook', icon: Facebook, color: 'bg-blue-600 hover:bg-blue-700' },
-    linkedin: { name: 'LinkedIn', icon: Linkedin, color: 'bg-blue-700 hover:bg-blue-800' },
-    tiktok: { name: 'TikTok', icon: Music, color: 'bg-black hover:bg-gray-900' },
-    youtube: { name: 'YouTube', icon: Youtube, color: 'bg-red-600 hover:bg-red-700' }
+    instagram: { 
+      name: 'Instagram', 
+      icon: Instagram, 
+      color: 'bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600' 
+    },
+    twitter: { 
+      name: 'Twitter', 
+      icon: Twitter, 
+      color: 'bg-blue-500 hover:bg-blue-600' 
+    },
+    facebook: { 
+      name: 'Facebook', 
+      icon: Facebook, 
+      color: 'bg-blue-600 hover:bg-blue-700' 
+    },
+    linkedin: { 
+      name: 'LinkedIn', 
+      icon: Linkedin, 
+      color: 'bg-blue-700 hover:bg-blue-800' 
+    },
+    tiktok: { 
+      name: 'TikTok', 
+      icon: Music, 
+      color: 'bg-black hover:bg-gray-900' 
+    },
+    youtube: { 
+      name: 'YouTube', 
+      icon: Youtube, 
+      color: 'bg-red-600 hover:bg-red-700' 
+    }
   };
 
   // Get currently selected platform details, fallback to default

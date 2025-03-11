@@ -10,7 +10,7 @@ import MediaPreview from '@/components/captions/MediaPreview';
 import SocialSharing from '@/components/captions/SocialSharing';
 import { generateCaptions } from '@/services/openaiService';
 import { downloadPreview, sharePreview } from '@/utils/sharingUtils';
-import { MediaType, CaptionStyle, Caption } from '@/types/mediaTypes';
+import { MediaType, CaptionStyle, Caption, CaptionResponse } from '@/types/mediaTypes';
 import { Switch } from "@/components/ui/switch";
 import { Slider } from "@/components/ui/slider";
 import { Separator } from "@/components/ui/separator";
@@ -61,10 +61,18 @@ const CaptionGenerator: React.FC = () => {
       const platform = '';
       const newCaptions = await generateCaptions(topic, keywords, temperature, captionStyle, platform);
       
-      const captionsArray = Array.isArray(newCaptions) ? newCaptions : [newCaptions]; 
-      setGeneratedCaptions(captionsArray);
+      const captionsArray = Array.isArray(newCaptions) ? newCaptions : [newCaptions];
+      // Ensure the response matches the Caption type
+      const formattedCaptions: Caption[] = captionsArray.map((caption: CaptionResponse) => ({
+        title: caption.title || '',
+        caption: caption.caption || '',
+        cta: caption.cta || '',
+        hashtags: Array.isArray(caption.hashtags) ? caption.hashtags : []
+      }));
+      
+      setGeneratedCaptions(formattedCaptions);
       setSelectedCaptionIndex(0);
-      setCurrentCaption(captionsArray[0]);
+      setCurrentCaption(formattedCaptions[0]);
       toast.success('Captions generated successfully!');
     } catch (error: any) {
       console.error('Error generating captions:', error);
@@ -168,6 +176,7 @@ const CaptionGenerator: React.FC = () => {
   };
 
   return (
+    
     <div className="container mx-auto py-8 px-4">
       <h1 className="text-3xl font-bold mb-8 text-center dark:text-white">
         AI Caption Generator
