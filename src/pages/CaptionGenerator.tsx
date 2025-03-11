@@ -148,7 +148,7 @@ const CaptionGenerator: React.FC = () => {
         </p>
       </div>
       
-      <div className="container mx-auto flex-1 p-4 md:p-6 max-w-7xl">
+      <div className="container mx-auto flex-1 p-4 md:p-6 max-w-6xl">
         <div className="bg-gray-800/60 backdrop-blur-md border border-gray-700/50 rounded-xl shadow-md overflow-hidden">
           <WizardLayout 
             currentStep={currentStep} 

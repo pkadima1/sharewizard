@@ -300,7 +300,7 @@ const GeneratedCaptions: React.FC<GeneratedCaptionsProps> = ({
   }
 
   return (
-    <div className="w-full max-w-7xl mx-auto p-4">
+    <div className="w-full max-w-6xl mx-auto p-4">
       <div className="flex justify-between items-center mb-6">
         <h2 className="text-xl font-semibold dark:text-white">Choose Your Caption</h2>
         <Button 
@@ -312,8 +312,8 @@ const GeneratedCaptions: React.FC<GeneratedCaptionsProps> = ({
         </Button>
       </div>
       
-      <div className="flex flex-col lg:flex-row gap-6">
-        <div className="lg:w-3/5">
+      <div className="flex flex-col md:flex-row gap-6">
+        <div className="md:w-1/2 lg:w-3/5">
           <div className="space-y-4">
             {captions.map((caption, index) => (
               <div 
@@ -330,14 +330,18 @@ const GeneratedCaptions: React.FC<GeneratedCaptionsProps> = ({
                 onMouseLeave={() => setHoveredCaption(null)}
               >
                 <h3 className="font-medium mb-2 text-gray-900 dark:text-gray-100">{caption.title}</h3>
-                <p className="text-sm text-gray-700 dark:text-gray-300 mb-3">{caption.caption}</p>
-                <p className="text-sm text-gray-600 dark:text-gray-400 italic mb-2">{caption.cta}</p>
+                <p className="text-sm text-gray-700 dark:text-gray-300 mb-3 line-clamp-3">{caption.caption}</p>
                 <div className="flex flex-wrap gap-1 mb-2">
-                  {caption.hashtags.map((hashtag, idx) => (
+                  {caption.hashtags.slice(0, 3).map((hashtag, idx) => (
                     <span key={idx} className="bg-gray-100 dark:bg-gray-800 px-2 py-0.5 rounded text-xs text-blue-600 dark:text-blue-400">
                       #{hashtag}
                     </span>
                   ))}
+                  {caption.hashtags.length > 3 && (
+                    <span className="bg-gray-100 dark:bg-gray-800 px-2 py-0.5 rounded text-xs text-gray-500 dark:text-gray-400">
+                      +{caption.hashtags.length - 3} more
+                    </span>
+                  )}
                 </div>
                 <div className="flex justify-end mt-2">
                   <Button 
@@ -354,7 +358,7 @@ const GeneratedCaptions: React.FC<GeneratedCaptionsProps> = ({
                     }}
                   >
                     <Copy className="h-4 w-4 mr-1" />
-                    Copy
+                    Copy Caption
                   </Button>
                 </div>
               </div>
@@ -362,7 +366,7 @@ const GeneratedCaptions: React.FC<GeneratedCaptionsProps> = ({
           </div>
         </div>
         
-        <div className="lg:w-2/5">
+        <div className="md:w-1/2 lg:w-2/5">
           <div className="sticky top-6 space-y-4">
             <div className="bg-gray-100 dark:bg-gray-800 p-4 rounded-lg">
               <div className="flex justify-between items-center mb-3">
@@ -484,9 +488,9 @@ const GeneratedCaptions: React.FC<GeneratedCaptionsProps> = ({
                             {captionOverlayMode === 'overlay' && captions.length > 0 && (
                               <div className="absolute bottom-0 left-0 right-0 bg-black bg-opacity-70 p-4 backdrop-blur-sm">
                                 <p className="text-white text-lg font-semibold mb-2">{captions[selectedCaption]?.title}</p>
-                                <p className="text-white text-sm mb-2">{captions[selectedCaption]?.caption}</p>
-                                <p className="text-white text-sm italic mb-2">{captions[selectedCaption]?.cta}</p>
-                                <div className="flex flex-wrap gap-1 mt-1">
+                                <p className="text-white text-sm">{captions[selectedCaption]?.caption}</p>
+                                <p className="text-white text-sm italic mt-2">{captions[selectedCaption]?.cta}</p>
+                                <div className="flex flex-wrap gap-1 mt-2">
                                   {captions[selectedCaption]?.hashtags.map((hashtag, idx) => (
                                     <span key={idx} className="text-blue-300 text-xs">
                                       #{hashtag}
@@ -507,9 +511,9 @@ const GeneratedCaptions: React.FC<GeneratedCaptionsProps> = ({
                             {captionOverlayMode === 'overlay' && captions.length > 0 && (
                               <div className="absolute bottom-0 left-0 right-0 bg-black bg-opacity-70 p-4 backdrop-blur-sm">
                                 <p className="text-white text-lg font-semibold mb-2">{captions[selectedCaption]?.title}</p>
-                                <p className="text-white text-sm mb-2">{captions[selectedCaption]?.caption}</p>
-                                <p className="text-white text-sm italic mb-2">{captions[selectedCaption]?.cta}</p>
-                                <div className="flex flex-wrap gap-1 mt-1">
+                                <p className="text-white text-sm">{captions[selectedCaption]?.caption}</p>
+                                <p className="text-white text-sm italic mt-2">{captions[selectedCaption]?.cta}</p>
+                                <div className="flex flex-wrap gap-1 mt-2">
                                   {captions[selectedCaption]?.hashtags.map((hashtag, idx) => (
                                     <span key={idx} className="text-blue-300 text-xs">
                                       #{hashtag}
@@ -531,7 +535,7 @@ const GeneratedCaptions: React.FC<GeneratedCaptionsProps> = ({
                       <div className={`space-y-3 p-6 ${!isTextOnly && captionOverlayMode === 'below' ? 'bg-blue-950 text-white' : ''}`}>
                         <h3 className="font-semibold text-xl">{captions[selectedCaption]?.title}</h3>
                         <p className="whitespace-pre-line">{captions[selectedCaption]?.caption}</p>
-                        <p className="italic text-gray-300 mt-3">{captions[selectedCaption]?.cta}</p>
+                        <p className="italic text-gray-300">{captions[selectedCaption]?.cta}</p>
                         <div className="flex flex-wrap gap-1 pt-2">
                           {captions[selectedCaption]?.hashtags.map((hashtag, idx) => (
                             <Badge key={idx} variant="secondary" className="text-blue-400">
