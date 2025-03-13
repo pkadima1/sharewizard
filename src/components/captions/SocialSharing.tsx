@@ -1,11 +1,9 @@
-
-import React, { useState } from 'react';
+import React from 'react';
 import { Button } from "@/components/ui/button";
 import { Share, Instagram, Facebook, Twitter, Linkedin, Youtube, Music } from 'lucide-react';
 import { toast } from "sonner";
 import { shareToPlatform } from '@/utils/socialMediaUtils';
 import { MediaType } from '@/types/mediaTypes';
-import { isWebShareSupported, isFileShareSupported } from '@/utils/sharingUtils';
 
 interface SocialSharingProps {
   isEditing: boolean;
@@ -23,61 +21,42 @@ const SocialSharing: React.FC<SocialSharingProps> = ({
   onShareClick,
   selectedPlatform = '',
   caption,
-  mediaType = 'text-only',
+  mediaType,
   previewUrl
 }) => {
-  const [platformLoading, setPlatformLoading] = useState<string | null>(null);
-  const [browserShareLoading, setBrowserShareLoading] = useState<boolean>(false);
-  
-  const supportsWebShare = isWebShareSupported();
-  const supportsFileShare = isFileShareSupported();
-  
   if (isEditing) return null;
 
   const handleDirectShare = async (platform: string) => {
     try {
-      // Set loading state for this specific platform
-      setPlatformLoading(platform);
       toast.info(`Preparing to share on ${platform}...`);
       
-      // Share directly to the selected platform
-      const result = await shareToPlatform(platform.toLowerCase(), {
-        caption,
-        mediaType,
-        mediaUrl: previewUrl
-      });
-      
-      if (result.success) {
-        toast.success(result.message || `Shared to ${platform} successfully!`);
-        console.log(`Shared to ${platform} via API`);
-      } else if (result.error) {
-        // If direct sharing fails, show the error
-        console.warn(`${platform} sharing error: ${result.error}`);
-        toast.error(`Failed to share to ${platform}: ${result.error}`);
+      // If we're trying to share directly to a social platform
+      if (platform.toLowerCase() !== 'browser') {
+        // First try the direct API sharing
+        const result = await shareToPlatform(platform.toLowerCase(), {
+          caption,
+          mediaType,
+          mediaUrl: previewUrl
+        });
+        
+        if (result.success) {
+          toast.success(result.message || `Shared to ${platform} successfully!`);
+          console.log(`Shared to ${platform} via API`);
+          return;
+        } else if (result.error) {
+          // If direct API sharing fails, fall back to browser sharing
+          console.warn(`Direct ${platform} sharing failed: ${result.error}`);
+          toast.warning(`Direct ${platform} sharing unavailable. Falling back to browser sharing.`);
+        }
       }
-    } catch (error) {
-      console.error(`Error sharing to ${platform}:`, error);
-      toast.error(`Failed to share to ${platform}.`);
-    } finally {
-      setPlatformLoading(null);
-    }
-  };
-
-  const handleBrowserShare = async () => {
-    try {
-      setBrowserShareLoading(true);
       
-      // Ensure we don't trigger any platform loading indicators
-      setPlatformLoading(null);
-      
-      // Call the parent component's share function
-      await onShareClick();
+      // Fall back to browser sharing
+      onShareClick();
       console.log(`Shared via browser share API`);
     } catch (error) {
-      console.error('Browser sharing error:', error);
-      toast.error('Failed to share via browser. Please try copying the text and sharing manually.');
-    } finally {
-      setBrowserShareLoading(false);
+      console.error(`Error sharing to ${platform}:`, error);
+      toast.error(`Failed to share to ${platform}. Trying browser sharing instead.`);
+      onShareClick();
     }
   };
 
@@ -96,22 +75,6 @@ const SocialSharing: React.FC<SocialSharingProps> = ({
     ? platforms[selectedPlatform as keyof typeof platforms] 
     : null;
 
-  // Display a different sharing message based on media type
-  const getBrowserShareText = () => {
-    if (mediaType === 'video') {
-      if (supportsFileShare) {
-        return "Share via Browser (with video)";
-      }
-      return "Share via Browser (caption only, video opens separately)";
-    } else if (mediaType === 'image') {
-      if (supportsFileShare) {
-        return "Share via Browser (with image)";
-      }
-      return "Share via Browser (caption only)";
-    }
-    return "Share via Browser (WhatsApp, Telegram, etc.)";
-  };
-
   return (
     <div className="space-y-3">
       <h3 className="font-medium dark:text-white">Share to Social Media</h3>
@@ -121,9 +84,9 @@ const SocialSharing: React.FC<SocialSharingProps> = ({
         <Button
           className={`w-full text-white ${selectedPlatformDetails.color} mb-2`}
           onClick={() => handleDirectShare(selectedPlatformDetails.name)}
-          disabled={isSharing || platformLoading === selectedPlatformDetails.name || browserShareLoading}
+          disabled={isSharing}
         >
-          {platformLoading === selectedPlatformDetails.name ? (
+          {isSharing ? (
             <div className="h-4 w-4 border-t-2 border-r-2 border-white rounded-full animate-spin mr-2"></div>
           ) : (
             <selectedPlatformDetails.icon className="h-4 w-4 mr-2" />
@@ -132,25 +95,19 @@ const SocialSharing: React.FC<SocialSharingProps> = ({
         </Button>
       )}
       
-      {/* Fallback browser sharing option with improved feedback */}
+      {/* Fallback browser sharing option */}
       <Button
         className="w-full bg-purple-600 hover:bg-purple-700 text-white"
-        onClick={handleBrowserShare}
-        disabled={isSharing || browserShareLoading || !!platformLoading}
+        onClick={() => handleDirectShare('Browser')}
+        disabled={isSharing}
       >
-        {browserShareLoading ? (
+        {isSharing ? (
           <div className="h-4 w-4 border-t-2 border-r-2 border-white rounded-full animate-spin mr-2"></div>
         ) : (
           <Share className="h-4 w-4 mr-2" />
         )}
-        {getBrowserShareText()}
+        Share via Browser (WhatsApp, Telegram, etc.)
       </Button>
-      
-      {!supportsWebShare && (
-        <div className="text-xs text-amber-500 dark:text-amber-400">
-          Your browser doesn't support Web Share API. Content will be copied to clipboard.
-        </div>
-      )}
       
       <div className="text-sm text-gray-500 dark:text-gray-400">
         Or share directly to:
@@ -168,13 +125,8 @@ const SocialSharing: React.FC<SocialSharingProps> = ({
               size="sm" 
               className="w-full" 
               onClick={() => handleDirectShare(platform.name)}
-              disabled={platformLoading === platform.name || !!platformLoading || browserShareLoading}
             >
-              {platformLoading === platform.name ? (
-                <div className="h-4 w-4 border-t-2 border-r-2 border-blue-500 rounded-full animate-spin mr-1"></div>
-              ) : (
-                <platform.icon className="h-4 w-4 mr-1" />
-              )}
+              <platform.icon className="h-4 w-4 mr-1" />
               {platform.name}
             </Button>
           );
