@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { Button } from "@/components/ui/button";
 import { Share, Instagram, Facebook, Twitter, Linkedin, Youtube, Music } from 'lucide-react';
@@ -21,7 +22,7 @@ const SocialSharing: React.FC<SocialSharingProps> = ({
   onShareClick,
   selectedPlatform = '',
   caption,
-  mediaType,
+  mediaType = 'text-only', // Default to text-only to satisfy TypeScript
   previewUrl
 }) => {
   if (isEditing) return null;
@@ -50,7 +51,7 @@ const SocialSharing: React.FC<SocialSharingProps> = ({
         }
       }
       
-      // Fall back to browser sharing
+      // Fall back to browser sharing with both text and media
       onShareClick();
       console.log(`Shared via browser share API`);
     } catch (error) {

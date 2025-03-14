@@ -23,8 +23,21 @@ export const shareToInstagram = async (options: SharingOptions): Promise<ShareRe
     // Check if Instagram API credentials are available
     const igApiKey = import.meta.env.VITE_INSTAGRAM_CLIENT_SECRET;
     const igAccessToken = import.meta.env.VITE_INSTAGRAM_ACCESS_TOKEN;
+    const igAppId = import.meta.env.VITE_INSTAGRAM_APP_ID;
     
     if (!igApiKey || !igAccessToken) {
+      console.log('Missing Instagram API credentials');
+      
+      // Attempt to open Instagram sharing in a new window if we can't use the API
+      if (mediaUrl && typeof window !== 'undefined') {
+        const instagramUrl = `https://www.instagram.com/share?url=${encodeURIComponent(mediaUrl)}`;
+        window.open(instagramUrl, '_blank', 'width=600,height=600');
+        return { 
+          success: true, 
+          message: 'Instagram sharing window opened' 
+        };
+      }
+      
       return { 
         success: false, 
         error: 'Instagram API credentials not configured.' 
@@ -37,8 +50,9 @@ export const shareToInstagram = async (options: SharingOptions): Promise<ShareRe
     
     console.log('Sharing to Instagram with:', { mediaType, captionTitle: caption?.title });
     
-    // For demo purposes, simulate a successful API call
     // In a real implementation, you would make API calls to the Instagram Graph API
+    // For now, let's simulate a successful API call
+    // In production, you would use the FB Graph API: https://developers.facebook.com/docs/instagram-api/guides/content-publishing
     
     return { 
       success: true, 
@@ -62,21 +76,20 @@ export const shareToTwitter = async (options: SharingOptions): Promise<ShareResu
     const twitterApiKey = import.meta.env.VITE_TWITTER_API_KEY;
     const twitterAccessToken = import.meta.env.VITE_TWITTER_ACCESS_TOKEN;
     
-    if (!twitterApiKey || !twitterAccessToken) {
-      return { 
-        success: false, 
-        error: 'Twitter API credentials not configured.' 
-      };
+    // For Twitter, we can fall back to the Twitter Web Intent URL
+    const text = `${caption.title}\n\n${caption.caption}\n${caption.hashtags.map(tag => `#${tag}`).join(' ')}`;
+    const twitterShareUrl = `https://twitter.com/intent/tweet?text=${encodeURIComponent(text)}`;
+    
+    if (mediaUrl) {
+      twitterShareUrl + `&url=${encodeURIComponent(mediaUrl)}`;
     }
     
-    console.log('Sharing to Twitter with:', { mediaType, captionTitle: caption?.title });
-    
-    // For demo purposes, simulate a successful API call
-    // In a real implementation, you would make API calls to the Twitter API
+    // Open Twitter share dialog
+    window.open(twitterShareUrl, '_blank', 'width=600,height=600');
     
     return { 
       success: true, 
-      message: 'Shared to Twitter successfully' 
+      message: 'Twitter sharing window opened' 
     };
   } catch (error) {
     console.error('Twitter sharing error:', error);
@@ -96,21 +109,25 @@ export const shareToFacebook = async (options: SharingOptions): Promise<ShareRes
     const fbApiKey = import.meta.env.VITE_FACEBOOK_API_KEY;
     const fbAccessToken = import.meta.env.VITE_FACEBOOK_ACCESS_TOKEN;
     
-    if (!fbApiKey || !fbAccessToken) {
-      return { 
-        success: false, 
-        error: 'Facebook API credentials not configured.' 
-      };
+    // For Facebook, we can fall back to the Facebook Sharer URL
+    let facebookShareUrl = 'https://www.facebook.com/sharer/sharer.php?';
+    
+    if (mediaUrl) {
+      facebookShareUrl += `u=${encodeURIComponent(mediaUrl)}`;
+    } else {
+      // If no media URL, share the caption text
+      const text = `${caption.title}\n\n${caption.caption}`;
+      facebookShareUrl += `quote=${encodeURIComponent(text)}`;
     }
     
-    console.log('Sharing to Facebook with:', { mediaType, captionTitle: caption?.title });
+    // Open Facebook share dialog
+    window.open(facebookShareUrl, '_blank', 'width=600,height=600');
     
-    // For demo purposes, simulate a successful API call
-    // In a real implementation, you would make API calls to the Facebook Graph API
+    console.log('Shared to Facebook via web dialog');
     
     return { 
       success: true, 
-      message: 'Shared to Facebook successfully' 
+      message: 'Facebook sharing window opened' 
     };
   } catch (error) {
     console.error('Facebook sharing error:', error);
@@ -130,21 +147,21 @@ export const shareToLinkedIn = async (options: SharingOptions): Promise<ShareRes
     const linkedinApiKey = import.meta.env.VITE_LINKEDIN_API_KEY;
     const linkedinAccessToken = import.meta.env.VITE_LINKEDIN_ACCESS_TOKEN;
     
-    if (!linkedinApiKey || !linkedinAccessToken) {
-      return { 
-        success: false, 
-        error: 'LinkedIn API credentials not configured.' 
-      };
+    // For LinkedIn, we can fall back to the LinkedIn Share URL
+    let linkedinShareUrl = 'https://www.linkedin.com/sharing/share-offsite/?';
+    
+    if (mediaUrl) {
+      linkedinShareUrl += `url=${encodeURIComponent(mediaUrl)}`;
     }
     
-    console.log('Sharing to LinkedIn with:', { mediaType, captionTitle: caption?.title });
+    // Open LinkedIn share dialog
+    window.open(linkedinShareUrl, '_blank', 'width=600,height=600');
     
-    // For demo purposes, simulate a successful API call
-    // In a real implementation, you would make API calls to the LinkedIn API
+    console.log('Shared to LinkedIn via web dialog');
     
     return { 
       success: true, 
-      message: 'Shared to LinkedIn successfully' 
+      message: 'LinkedIn sharing window opened' 
     };
   } catch (error) {
     console.error('LinkedIn sharing error:', error);
@@ -160,25 +177,16 @@ export const shareToTikTok = async (options: SharingOptions): Promise<ShareResul
   try {
     const { caption, mediaType, mediaUrl } = options;
     
-    // Check if TikTok API credentials are available
-    const tiktokApiKey = import.meta.env.VITE_TIKTOK_API_KEY;
-    const tiktokAccessToken = import.meta.env.VITE_TIKTOK_ACCESS_TOKEN;
+    // TikTok doesn't have a standard web share URL like other platforms
+    // We'll need to use their SDK or API in a real implementation
     
-    if (!tiktokApiKey || !tiktokAccessToken) {
-      return { 
-        success: false, 
-        error: 'TikTok API credentials not configured.' 
-      };
-    }
-    
-    console.log('Sharing to TikTok with:', { mediaType, captionTitle: caption?.title });
-    
-    // For demo purposes, simulate a successful API call
-    // In a real implementation, you would make API calls to the TikTok API
+    // As a fallback, we can direct users to the TikTok app or website
+    toast.info('Opening TikTok. Please upload your media there.');
+    window.open('https://www.tiktok.com/upload', '_blank');
     
     return { 
       success: true, 
-      message: 'Shared to TikTok successfully' 
+      message: 'TikTok upload page opened' 
     };
   } catch (error) {
     console.error('TikTok sharing error:', error);
@@ -201,25 +209,14 @@ export const shareToYouTube = async (options: SharingOptions): Promise<ShareResu
       };
     }
     
-    // Check if YouTube API credentials are available
-    const youtubeApiKey = import.meta.env.VITE_YOUTUBE_API_KEY;
-    const youtubeAccessToken = import.meta.env.VITE_YOUTUBE_ACCESS_TOKEN;
-    
-    if (!youtubeApiKey || !youtubeAccessToken) {
-      return { 
-        success: false, 
-        error: 'YouTube API credentials not configured.' 
-      };
-    }
-    
-    console.log('Sharing to YouTube with:', { mediaType, captionTitle: caption?.title });
-    
-    // For demo purposes, simulate a successful API call
-    // In a real implementation, you would make API calls to the YouTube API
+    // YouTube doesn't have a standard web share URL for uploading
+    // Direct users to YouTube Studio
+    toast.info('Opening YouTube Studio. Please upload your video there.');
+    window.open('https://studio.youtube.com/channel/upload', '_blank');
     
     return { 
       success: true, 
-      message: 'Shared to YouTube successfully' 
+      message: 'YouTube Studio opened for upload' 
     };
   } catch (error) {
     console.error('YouTube sharing error:', error);

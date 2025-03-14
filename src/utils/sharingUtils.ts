@@ -463,26 +463,38 @@ export const sharePreview = async (
           const loadingToastId = toast.loading('Preparing media for sharing...');
           
           if (mediaType === 'video') {
-            // For video content
+            // For video content, we need to capture the processed video with captions
             const video = sharableContent.querySelector('video');
             if (video && video.src) {
-              // Fetch the video file
-              const response = await fetch(video.src);
-              if (!response.ok) throw new Error('Failed to fetch video');
-              
-              const blob = await response.blob();
-              mediaFile = new File([blob], `video-${Date.now()}.mp4`, { 
-                type: blob.type || 'video/mp4' 
-              });
+              try {
+                // Create captioned video with caption overlay
+                const captionedVideoBlob = await createCaptionedVideo(video, caption);
+                
+                // Create a file from the blob
+                mediaFile = new File([captionedVideoBlob], `video-${Date.now()}.webm`, { 
+                  type: 'video/webm' 
+                });
+                console.log('Prepared captioned video for sharing:', mediaFile.size, 'bytes');
+              } catch (videoProcessingError) {
+                console.error('Error processing video for sharing:', videoProcessingError);
+                // Fallback to the original video if processing fails
+                const response = await fetch(video.src);
+                if (!response.ok) throw new Error('Failed to fetch video');
+                
+                const blob = await response.blob();
+                mediaFile = new File([blob], `video-${Date.now()}.mp4`, { 
+                  type: blob.type || 'video/mp4' 
+                });
+              }
             }
           } else if (mediaType === 'image') {
-            // For image content
+            // For image content, capture the entire content including caption
             const canvas = await html2canvas(sharableContent as HTMLElement, {
               useCORS: true,
               scale: 2,
               logging: false,
               backgroundColor: getComputedStyle(document.documentElement)
-                .getPropertyValue('--background') || '#ffffff',
+                .getPropertyValue('--background') || '#1e1e1e',
               ignoreElements: (element) => {
                 // Ignore any elements that shouldn't be captured
                 return element.classList.contains('social-share-buttons') ||
@@ -795,3 +807,4 @@ function toTitleCase(text: string): string {
     })
     .join(' ');
 }
+
