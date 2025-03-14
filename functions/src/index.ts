@@ -1,38 +1,13 @@
-
 import * as functions from 'firebase-functions';
 import * as admin from 'firebase-admin';
 import OpenAI from 'openai';
 
 admin.initializeApp();
 
-// Initialize OpenAI with either environment variable or fetch from Secret Manager
-let openai: OpenAI;
-
-// Function to configure OpenAI with API key
-async function configureOpenAI() {
-  try {
-    // Try to get API key from environment first
-    let apiKey = process.env.OPENAI_API_KEY;
-    
-    // If not available, log that we're using the environment variable
-    if (apiKey) {
-      console.log('Using OPENAI_API_KEY from environment variables');
-    } else {
-      console.log('OPENAI_API_KEY not found in environment variables');
-    }
-
-    // Initialize OpenAI with the key
-    openai = new OpenAI({
-      apiKey: apiKey,
-    });
-
-    console.log('OpenAI client initialized successfully');
-    return true;
-  } catch (error) {
-    console.error('Error configuring OpenAI:', error);
-    return false;
-  }
-}
+// Initialize OpenAI with API key from environment variables
+const openai = new OpenAI({
+  apiKey: process.env.OPENAI_API_KEY,
+});
 
 export const generateCaptions = functions.https.onCall(async (data, context) => {
   // Verify if the user is authenticated
@@ -53,18 +28,9 @@ export const generateCaptions = functions.https.onCall(async (data, context) => 
       );
     }
 
-    // Configure OpenAI if not already done
-    if (!openai) {
-      const isConfigured = await configureOpenAI();
-      if (!isConfigured) {
-        throw new functions.https.HttpsError(
-          'internal',
-          'Failed to initialize OpenAI client'
-        );
-      }
-    }
-
+    // Log that we're making the API call
     console.log('Calling OpenAI API with model: gpt-4o-mini');
+    console.log('API Key status:', process.env.OPENAI_API_KEY ? 'API key is set' : 'API key is missing');
     
     // Make the API call
     const completion = await openai.chat.completions.create({
@@ -87,7 +53,7 @@ export const generateCaptions = functions.https.onCall(async (data, context) => 
   } catch (error: any) {
     console.error('Error generating captions:', error);
     
-    // More detailed error logging
+    // Detailed error logging
     if (error.response) {
       console.error('OpenAI API Error Response:', {
         status: error.response.status,
@@ -96,20 +62,15 @@ export const generateCaptions = functions.https.onCall(async (data, context) => 
     }
     
     // Map OpenAI errors to appropriate Firebase errors
-    if (error?.status === 401 || error?.response?.status === 401) {
+    if (error.status === 401 || (error.response && error.response.status === 401)) {
       throw new functions.https.HttpsError(
         'permission-denied',
         'Invalid OpenAI API key.'
       );
-    } else if (error?.status === 429 || error?.response?.status === 429) {
+    } else if (error.status === 429 || (error.response && error.response.status === 429)) {
       throw new functions.https.HttpsError(
         'resource-exhausted',
         'OpenAI rate limit exceeded. Please try again later.'
-      );
-    } else if (error?.status === 500 || error?.response?.status === 500) {
-      throw new functions.https.HttpsError(
-        'internal',
-        'OpenAI server error. Please try again later.'
       );
     } else {
       throw new functions.https.HttpsError(
