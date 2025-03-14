@@ -76,3 +76,72 @@ export const generateCaptions = functions.https.onCall(async (data, context) => 
     }
   }
 });
+
+// Example function for social media API integration
+export const shareToSocialMedia = functions.https.onCall(async (data, context) => {
+  // Verify if the user is authenticated
+  if (!context.auth) {
+    throw new functions.https.HttpsError(
+      'unauthenticated',
+      'You must be logged in to share content.'
+    );
+  }
+
+  try {
+    const { platform, content, mediaUrl } = data;
+
+    if (!platform || !content) {
+      throw new functions.https.HttpsError(
+        'invalid-argument',
+        'The function must be called with platform and content arguments.'
+      );
+    }
+
+    // Access the appropriate API key based on the platform
+    let apiKey;
+    switch (platform.toLowerCase()) {
+      case 'instagram':
+        apiKey = process.env.INSTAGRAM_ACCESS_TOKEN;
+        break;
+      case 'facebook':
+        apiKey = process.env.FACEBOOK_ACCESS_TOKEN;
+        break;
+      case 'twitter':
+        apiKey = process.env.TWITTER_ACCESS_TOKEN;
+        break;
+      case 'linkedin':
+        apiKey = process.env.LINKEDIN_ACCESS_TOKEN;
+        break;
+      case 'tiktok':
+        apiKey = process.env.TIKTOK_ACCESS_TOKEN;
+        break;
+      default:
+        throw new functions.https.HttpsError(
+          'invalid-argument',
+          `Unsupported platform: ${platform}`
+        );
+    }
+
+    if (!apiKey) {
+      throw new functions.https.HttpsError(
+        'failed-precondition',
+        `API key for ${platform} is not configured.`
+      );
+    }
+
+    // This is a placeholder for actual social media API calls
+    // In a real implementation, you would use the platform's SDK or API
+    console.log(`Sharing to ${platform} with content: ${content}`);
+
+    // Return a success response
+    return { success: true, message: `Content shared to ${platform} successfully` };
+
+  } catch (error: any) {
+    console.error(`Error sharing to social media:`, error);
+    
+    throw new functions.https.HttpsError(
+      'unknown',
+      error.message || 'An unknown error occurred'
+    );
+  }
+});
