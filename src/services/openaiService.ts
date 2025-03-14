@@ -1,7 +1,6 @@
 
 import { toast } from "sonner";
-import OpenAI from "openai";
-import { useAuth } from "@/contexts/AuthContext";
+import { getFunctions, httpsCallable } from "firebase/functions";
 
 export interface GeneratedCaption {
   title: string;
@@ -22,21 +21,11 @@ export const generateCaptions = async (
   postIdea?: string
 ): Promise<CaptionResponse | null> => {
   try {
-    const apiKey = import.meta.env.VITE_OPENAI_API_KEY;
-    
-    if (!apiKey) {
-      toast.error("OpenAI API key is missing. Please check your environment variables.");
-      console.error("OpenAI API key is missing");
-      return null;
-    }
-    
     console.log("Generating captions with parameters:", { platform, tone, niche, goal, postIdea });
     
-    // Initialize the OpenAI client
-    const openai = new OpenAI({
-      apiKey: apiKey,
-      dangerouslyAllowBrowser: true // Required for client-side usage
-    });
+    // Initialize Firebase Functions
+    const functions = getFunctions();
+    const generateCaptionsFunction = httpsCallable(functions, 'generateCaptions');
 
     // Prepare the content for generation
     const contentToGenerate = postIdea || niche;
@@ -85,24 +74,18 @@ export const generateCaptions = async (
       }
     `;
 
-    console.log("Calling OpenAI API with model: gpt-4o-mini");
+    console.log("Calling Firebase Function to generate captions");
     
-    // Make the API call
-    const completion = await openai.chat.completions.create({
-      model: "gpt-4o-mini",
-      messages: [
-        { role: "system", content: systemPrompt },
-        { role: "user", content: userPrompt }
-      ],
-      temperature: 0.7,
-      max_tokens: 800,
-      response_format: { type: "json_object" }
+    // Make the API call via Firebase Function
+    const result = await generateCaptionsFunction({
+      systemPrompt,
+      userPrompt
     });
-
-    console.log("OpenAI API response received");
+    
+    console.log("Firebase Function response received");
     
     // Extract and validate the content
-    const content = completion.choices[0].message.content;
+    const content = result.data as string;
     
     if (!content) {
       console.error("No content received from OpenAI");
@@ -133,12 +116,12 @@ export const generateCaptions = async (
     // Handle specific error types
     console.error("Error generating captions:", error);
     
-    if (error?.response?.status === 401) {
-      toast.error("Invalid OpenAI API key. Please check your API key.");
-    } else if (error?.response?.status === 429) {
-      toast.error("OpenAI rate limit exceeded. Please try again later.");
-    } else if (error?.response?.status === 500) {
-      toast.error("OpenAI server error. Please try again later.");
+    if (error?.code === 'unauthenticated') {
+      toast.error("You must be logged in to generate captions.");
+    } else if (error?.code === 'resource-exhausted') {
+      toast.error("API rate limit exceeded. Please try again later.");
+    } else if (error?.code === 'internal') {
+      toast.error("OpenAI service error. Please try again later.");
     } else if (error.message) {
       toast.error(`Error: ${error.message}`);
     } else {
