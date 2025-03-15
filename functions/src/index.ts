@@ -1,151 +1,17 @@
-import * as functions from 'firebase-functions';
-import * as admin from 'firebase-admin';
-import OpenAI from 'openai';
 
-admin.initializeApp();
+import { onRequest } from "firebase-functions/v2/https";
+import { getOpenAIKey } from "./config/secrets";
+import { generateCaptions } from "./services/openai";
 
-// Initialize OpenAI with API key from environment variables
-const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY,
-});
-
-export const generateCaptions = functions.https.onCall(async (data, context) => {
-  // Verify if the user is authenticated
-  if (!context.auth) {
-    throw new functions.https.HttpsError(
-      'unauthenticated',
-      'You must be logged in to generate captions.'
-    );
-  }
-
+// Export the test endpoint
+export const testOpenAIKey = onRequest(async (req, res) => {
   try {
-    const { systemPrompt, userPrompt } = data;
-
-    if (!systemPrompt || !userPrompt) {
-      throw new functions.https.HttpsError(
-        'invalid-argument',
-        'The function must be called with systemPrompt and userPrompt arguments.'
-      );
-    }
-
-    // Log that we're making the API call
-    console.log('Calling OpenAI API with model: gpt-4o-mini');
-    console.log('API Key status:', process.env.OPENAI_API_KEY ? 'API key is set' : 'API key is missing');
-    
-    // Make the API call
-    const completion = await openai.chat.completions.create({
-      model: "gpt-4o-mini",
-      messages: [
-        { role: "system", content: systemPrompt },
-        { role: "user", content: userPrompt }
-      ],
-      temperature: 0.7,
-      max_tokens: 800,
-      response_format: { type: "json_object" }
-    });
-
-    console.log('OpenAI API response received');
-    
-    // Extract and return content
-    const content = completion.choices[0].message.content;
-    return content;
-
-  } catch (error: any) {
-    console.error('Error generating captions:', error);
-    
-    // Detailed error logging
-    if (error.response) {
-      console.error('OpenAI API Error Response:', {
-        status: error.response.status,
-        data: error.response.data
-      });
-    }
-    
-    // Map OpenAI errors to appropriate Firebase errors
-    if (error.status === 401 || (error.response && error.response.status === 401)) {
-      throw new functions.https.HttpsError(
-        'permission-denied',
-        'Invalid OpenAI API key.'
-      );
-    } else if (error.status === 429 || (error.response && error.response.status === 429)) {
-      throw new functions.https.HttpsError(
-        'resource-exhausted',
-        'OpenAI rate limit exceeded. Please try again later.'
-      );
-    } else {
-      throw new functions.https.HttpsError(
-        'unknown',
-        error.message || 'An unknown error occurred'
-      );
-    }
+    await getOpenAIKey();
+    res.json({ message: "OpenAI API Key retrieved successfully" });
+  } catch (error) {
+    res.status(500).json({ error: "Failed to retrieve OpenAI API key" });
   }
 });
 
-// Example function for social media API integration
-export const shareToSocialMedia = functions.https.onCall(async (data, context) => {
-  // Verify if the user is authenticated
-  if (!context.auth) {
-    throw new functions.https.HttpsError(
-      'unauthenticated',
-      'You must be logged in to share content.'
-    );
-  }
-
-  try {
-    const { platform, content, mediaUrl } = data;
-
-    if (!platform || !content) {
-      throw new functions.https.HttpsError(
-        'invalid-argument',
-        'The function must be called with platform and content arguments.'
-      );
-    }
-
-    // Access the appropriate API key based on the platform
-    let apiKey;
-    switch (platform.toLowerCase()) {
-      case 'instagram':
-        apiKey = process.env.INSTAGRAM_ACCESS_TOKEN;
-        break;
-      case 'facebook':
-        apiKey = process.env.FACEBOOK_ACCESS_TOKEN;
-        break;
-      case 'twitter':
-        apiKey = process.env.TWITTER_ACCESS_TOKEN;
-        break;
-      case 'linkedin':
-        apiKey = process.env.LINKEDIN_ACCESS_TOKEN;
-        break;
-      case 'tiktok':
-        apiKey = process.env.TIKTOK_ACCESS_TOKEN;
-        break;
-      default:
-        throw new functions.https.HttpsError(
-          'invalid-argument',
-          `Unsupported platform: ${platform}`
-        );
-    }
-
-    if (!apiKey) {
-      throw new functions.https.HttpsError(
-        'failed-precondition',
-        `API key for ${platform} is not configured.`
-      );
-    }
-
-    // This is a placeholder for actual social media API calls
-    // In a real implementation, you would use the platform's SDK or API
-    console.log(`Sharing to ${platform} with content: ${content}`);
-
-    // Return a success response
-    return { success: true, message: `Content shared to ${platform} successfully` };
-
-  } catch (error: any) {
-    console.error(`Error sharing to social media:`, error);
-    
-    throw new functions.https.HttpsError(
-      'unknown',
-      error.message || 'An unknown error occurred'
-    );
-  }
-});
+// Export the caption generator
+export { generateCaptions };
