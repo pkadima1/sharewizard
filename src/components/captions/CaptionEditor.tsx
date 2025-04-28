@@ -88,8 +88,7 @@ const CaptionEditor: React.FC<CaptionEditorProps> = ({
         />
       )}
 
-      {/* Return the ref so parent components can access it */}
-      <div className="hidden">{previewRef.current}</div>
+      {/* Remove the problematic code that's trying to render a DOM element directly */}
     </div>
   );
 };
