@@ -1,18 +1,11 @@
 
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useRef } from 'react';
 import { Button } from "@/components/ui/button";
-import { toast } from "sonner";
-import { generateCaptions, CaptionResponse, GeneratedCaption } from '@/services/openaiService';
-import { useAuth } from '@/contexts/AuthContext';
-import { sharePreview, downloadPreview } from '@/utils/sharingUtils';
-import { CaptionStyle, MediaType } from '@/types/mediaTypes';
+import { useCaptionGeneration } from '@/hooks/useCaptionGeneration';
 import useMediaType from '@/hooks/useMediaType';
-
-// Import our components
 import CaptionsList from './captions/CaptionsList';
-import CaptionEditForm from './captions/CaptionEditForm';
-import MediaPreview from './captions/MediaPreview';
-import SocialSharing from './captions/SocialSharing';
+import CaptionEditor from './captions/CaptionEditor';
+import CaptionSharingActions from './captions/CaptionSharingActions';
 import ErrorDisplay from './captions/ErrorDisplay';
 import GenerationLoading from './captions/GenerationLoading';
 import EmptyState from './captions/EmptyState';
@@ -46,165 +39,43 @@ const GeneratedCaptions: React.FC<GeneratedCaptionsProps> = ({
   onCaptionOverlayModeChange,
   postIdea
 }) => {
-  const [captions, setCaptions] = useState<GeneratedCaption[]>([]);
-  const [selectedCaption, setSelectedCaption] = useState<number>(0);
-  const [error, setError] = useState<string | null>(null);
   const [isDownloading, setIsDownloading] = useState<boolean>(false);
   const [isSharing, setIsSharing] = useState<boolean>(false);
-  const [requestsRemaining, setRequestsRemaining] = useState<number | null>(null);
-  const { incrementRequestUsage, checkRequestAvailability } = useAuth();
-  const previewRef = useRef<HTMLDivElement>(null);
   const [isEditing, setIsEditing] = useState(false);
-  const [editingCaption, setEditingCaption] = useState<GeneratedCaption | null>(null);
+  
+  const previewRef = useRef<HTMLDivElement>(null);
   
   const mediaType = useMediaType(isTextOnly, selectedMedia);
   
-  useEffect(() => {
-    const fetchCaptions = async () => {
-      if (!isGenerating) return;
-
-      try {
-        setError(null);
-        
-        const availability = await checkRequestAvailability();
-        
-        if (!availability.canMakeRequest) {
-          setIsGenerating(false);
-          setError(availability.message);
-          return;
-        }
-        
-        const captionResponse = await generateCaptions(
-          selectedPlatform,
-          selectedTone,
-          selectedNiche,
-          selectedGoal,
-          postIdea
-        );
-
-        if (captionResponse && captionResponse.captions) {
-          // No need to manually increment as the Firebase function handles this
-          // await incrementRequestUsage();
-          
-          setCaptions(captionResponse.captions);
-          setSelectedCaption(0);
-          setRequestsRemaining(captionResponse.requests_remaining);
-          console.log("Captions generated successfully:", captionResponse);
-        } else {
-          setError("Failed to generate captions. Please try again.");
-          console.error("Error fetching captions - empty response");
-        }
-      } catch (err) {
-        console.error("Error fetching captions:", err);
-        setError("An unexpected error occurred. Please try again.");
-      } finally {
-        setIsGenerating(false);
-      }
-    };
-
-    fetchCaptions();
-  }, [isGenerating]);
+  // Use our custom hook for caption generation
+  const {
+    captions,
+    setCaptions,
+    selectedCaption,
+    setSelectedCaption,
+    error,
+    requestsRemaining
+  } = useCaptionGeneration({
+    selectedNiche,
+    selectedPlatform,
+    selectedGoal,
+    selectedTone,
+    isGenerating,
+    setIsGenerating,
+    postIdea
+  });
 
   const handleRegenerateClick = () => {
     setCaptions([]);
     setIsGenerating(true);
   };
 
-  const handleDownload = async () => {
-    if (!previewRef.current) {
-      toast.error("Preview container not found. Please try again.");
-      console.error("Preview ref is null:", previewRef.current);
-      return;
-    }
-    
-    try {
-      setIsDownloading(true);
-      console.log("Starting download, media type:", mediaType);
-      
-      const caption = captions[selectedCaption];
-      if (!caption) {
-        toast.error("No caption selected for download");
-        return;
-      }
-      
-      const timestamp = new Date().getTime();
-      const filename = `${caption.title.toLowerCase().replace(/\s+/g, '-')}-${timestamp}`;
-      
-      const captionStyle: CaptionStyle = captionOverlayMode === 'overlay' ? 'handwritten' : 'standard';
-      
-      await downloadPreview(
-        previewRef,
-        mediaType,
-        caption,
-        filename,
-        captionStyle
-      );
-    } catch (error) {
-      console.error("Error in download process:", error);
-      toast.error("Download failed. Please try again.");
-    } finally {
-      setIsDownloading(false);
-    }
-  };
-
-  const handleShareToSocial = async () => {
-    if (!previewRef.current) {
-      toast.error("Preview container not found. Please try again.");
-      console.error("Preview ref is null:", previewRef.current);
-      return;
-    }
-    
-    if (!captions[selectedCaption]) {
-      toast.error("No caption selected to share");
-      return;
-    }
-    
-    try {
-      setIsSharing(true);
-      
-      const result = await sharePreview(
-        previewRef,
-        captions[selectedCaption],
-        mediaType
-      );
-      
-      if (result.message) {
-        toast.success(result.message);
-      }
-    } catch (error) {
-      console.error("Error sharing:", error);
-      toast.error("Failed to share. Please try again.");
-    } finally {
-      setIsSharing(false);
-    }
-  };
-
-  const handleEditCaption = () => {
-    if (captions[selectedCaption]) {
-      setEditingCaption({ ...captions[selectedCaption] });
-      setIsEditing(true);
-    }
-  };
-
-  const handleSaveEdit = () => {
-    if (editingCaption) {
-      const updatedCaptions = [...captions];
-      updatedCaptions[selectedCaption] = editingCaption;
-      setCaptions(updatedCaptions);
-      setIsEditing(false);
-      toast.success("Caption updated successfully!");
-    }
-  };
-
-  const handleCancelEdit = () => {
-    setIsEditing(false);
-    setEditingCaption(null);
-  };
-
+  // Handle error state
   if (error) {
     return <ErrorDisplay error={error} onTryAgainClick={handleRegenerateClick} />;
   }
 
+  // Handle loading state
   if (isGenerating) {
     return (
       <GenerationLoading 
@@ -218,6 +89,7 @@ const GeneratedCaptions: React.FC<GeneratedCaptionsProps> = ({
     );
   }
 
+  // Handle empty state
   if (captions.length === 0 && !isGenerating) {
     return <EmptyState onGenerateClick={handleRegenerateClick} />;
   }
@@ -253,39 +125,46 @@ const GeneratedCaptions: React.FC<GeneratedCaptionsProps> = ({
         
         <div className="lg:w-3/5">
           <div className="sticky top-6 space-y-4">
-            {isEditing ? (
-              <CaptionEditForm 
-                editingCaption={editingCaption!}
-                setEditingCaption={setEditingCaption}
-                onSave={handleSaveEdit}
-                onCancel={handleCancelEdit}
-              />
-            ) : (
-              <MediaPreview 
-                ref={previewRef}
-                previewUrl={previewUrl}
-                selectedMedia={selectedMedia}
-                captionOverlayMode={captionOverlayMode}
-                onCaptionOverlayModeChange={onCaptionOverlayModeChange || (() => {})}
-                currentCaption={captions[selectedCaption]}
-                isTextOnly={isTextOnly}
-                onEditClick={handleEditCaption}
-                onShareClick={handleShareToSocial}
-                onDownloadClick={handleDownload}
-                isSharing={isSharing}
-                isDownloading={isDownloading}
-                isEditing={isEditing}
-              />
-            )}
+            <CaptionEditor
+              selectedMedia={selectedMedia}
+              previewUrl={previewUrl}
+              captions={captions}
+              selectedCaption={selectedCaption}
+              setCaptions={setCaptions}
+              isTextOnly={isTextOnly}
+              captionOverlayMode={captionOverlayMode}
+              onCaptionOverlayModeChange={onCaptionOverlayModeChange}
+              onShareClick={() => {
+                if (previewRef.current) {
+                  setIsSharing(true);
+                } else {
+                  console.error("Preview ref is null");
+                }
+              }}
+              onDownloadClick={() => {
+                if (previewRef.current) {
+                  setIsDownloading(true);
+                } else {
+                  console.error("Preview ref is null");
+                }
+              }}
+              isSharing={isSharing}
+              isDownloading={isDownloading}
+            />
             
-            <SocialSharing 
+            <CaptionSharingActions
+              previewRef={previewRef}
+              captions={captions}
+              selectedCaption={selectedCaption}
               isEditing={isEditing}
               isSharing={isSharing}
-              onShareClick={handleShareToSocial}
+              setIsSharing={setIsSharing}
+              isDownloading={isDownloading}
+              setIsDownloading={setIsDownloading}
               selectedPlatform={selectedPlatform}
-              caption={captions[selectedCaption]}
-              mediaType={mediaType}
               previewUrl={previewUrl}
+              mediaType={mediaType}
+              captionOverlayMode={captionOverlayMode}
             />
           </div>
         </div>
