@@ -14,14 +14,21 @@ interface OpenAIErrorResponse {
   message?: string;
 }
 
+export interface GeneratedCaption {
+  title: string;
+  caption: string;
+  cta: string;
+  hashtags: string[];
+}
+
 export const generateCaptions = onCall(async (request) => {
   try {
-    const { systemPrompt, userPrompt } = request.data;
+    const { tone, platform, niche, goal, postIdea } = request.data;
 
-    if (!systemPrompt || !userPrompt) {
+    if (!tone || !platform || !niche || !goal) {
       throw new functions.https.HttpsError(
         'invalid-argument',
-        'The function must be called with systemPrompt and userPrompt arguments.'
+        'Missing required parameters: tone, platform, niche, goal'
       );
     }
 
@@ -31,9 +38,28 @@ export const generateCaptions = onCall(async (request) => {
 
     console.log('Calling OpenAI API with model: gpt-4o-mini');
     
+    // Create the prompt for OpenAI
+    const systemPrompt = `You are the world's best content creator and digital marketing expert. Create 3 engaging ${tone} captions for ${platform} tailored for the ${niche} niche with a goal of ${goal}.`;
+    
+    const userPrompt = `
+      Create 3 engaging ${tone} captions for ${platform} about '${postIdea || niche}'.
+
+      The caption must:
+      1. Be concise and tailored to ${platform}'s audience and character limits (e.g., Instagram: 2200 characters, Twitter: 200 characters).
+      2. Use 5 hashtags relevant to the ${niche} industry.
+      3. Include a call-to-action to drive engagement for the goal: "${goal}"
+      4. If the goal is to share knowledge, start with words like 'did you know?', "Insight", "Fact", etc.
+
+      Format as JSON with these fields for each caption:
+      - title: A brief, catchy title highlighting main caption theme
+      - caption: The main caption text (NO hashtags here)
+      - cta: Call-to-action
+      - hashtags: Array of 5 relevant hashtags (without # symbol)
+    `;
+    
     // Make the API call
     const completion = await openai.chat.completions.create({
-      model: "gpt-4o-mini",
+      model: "gpt-4o",  // Using gpt-4o for better results
       messages: [
         { role: "system", content: systemPrompt },
         { role: "user", content: userPrompt }
@@ -45,7 +71,31 @@ export const generateCaptions = onCall(async (request) => {
 
     console.log('OpenAI API response received');
     
-    return completion.choices[0].message.content;
+    // Parse the response
+    const content = completion.choices[0].message.content;
+    if (!content) {
+      throw new functions.https.HttpsError('internal', 'Empty response from OpenAI');
+    }
+    
+    try {
+      const parsedContent = JSON.parse(content);
+      
+      // Check if the response has the expected format
+      if (!parsedContent.captions || !Array.isArray(parsedContent.captions)) {
+        throw new functions.https.HttpsError('internal', 'Invalid response format from OpenAI');
+      }
+      
+      // Return the captions along with a mock count of remaining requests
+      return {
+        captions: parsedContent.captions,
+        requests_remaining: 100  // Replace with actual limit from your user management system
+      };
+      
+    } catch (parseError) {
+      console.error("JSON parse error:", parseError);
+      console.error("Raw content that failed to parse:", content);
+      throw new functions.https.HttpsError('internal', 'Failed to parse response from OpenAI');
+    }
 
   } catch (error: unknown) {
     console.error('Error generating captions:', error);

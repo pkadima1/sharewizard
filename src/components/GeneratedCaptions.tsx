@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useRef } from 'react';
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
@@ -50,6 +51,7 @@ const GeneratedCaptions: React.FC<GeneratedCaptionsProps> = ({
   const [error, setError] = useState<string | null>(null);
   const [isDownloading, setIsDownloading] = useState<boolean>(false);
   const [isSharing, setIsSharing] = useState<boolean>(false);
+  const [requestsRemaining, setRequestsRemaining] = useState<number | null>(null);
   const { incrementRequestUsage, checkRequestAvailability } = useAuth();
   const previewRef = useRef<HTMLDivElement>(null);
   const [isEditing, setIsEditing] = useState(false);
@@ -81,11 +83,13 @@ const GeneratedCaptions: React.FC<GeneratedCaptionsProps> = ({
         );
 
         if (captionResponse && captionResponse.captions) {
-          await incrementRequestUsage();
+          // No need to manually increment as the Firebase function handles this
+          // await incrementRequestUsage();
           
           setCaptions(captionResponse.captions);
           setSelectedCaption(0);
-          console.log("Captions generated successfully:", captionResponse.captions);
+          setRequestsRemaining(captionResponse.requests_remaining);
+          console.log("Captions generated successfully:", captionResponse);
         } else {
           setError("Failed to generate captions. Please try again.");
           console.error("Error fetching captions - empty response");
@@ -222,13 +226,20 @@ const GeneratedCaptions: React.FC<GeneratedCaptionsProps> = ({
     <div className="w-full max-w-7xl mx-auto p-4">
       <div className="flex justify-between items-center mb-6">
         <h2 className="text-xl font-semibold dark:text-white">Choose Your Caption</h2>
-        <Button 
-          variant="outline" 
-          size="sm"
-          onClick={handleRegenerateClick}
-        >
-          Regenerate
-        </Button>
+        <div className="flex items-center gap-4">
+          {requestsRemaining !== null && (
+            <span className="text-sm text-gray-500 dark:text-gray-400">
+              {requestsRemaining} requests remaining
+            </span>
+          )}
+          <Button 
+            variant="outline" 
+            size="sm"
+            onClick={handleRegenerateClick}
+          >
+            Regenerate
+          </Button>
+        </div>
       </div>
       
       <div className="flex flex-col lg:flex-row gap-6">
