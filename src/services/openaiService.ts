@@ -74,7 +74,13 @@ export const generateCaptions = async (
     // Handle specific error types
     console.error("Error generating captions:", error);
     
-    if (error?.code === 'unauthenticated') {
+    // Specifically check for CORS-related errors
+    if (error?.code === 'functions/cors-error' || 
+        error?.message?.includes('CORS') ||
+        error?.message?.includes('blocked by CORS policy')) {
+      toast.error("Cross-origin request blocked. Please contact support with this error: CORS policy restriction.");
+      console.error("CORS Error Details:", error);
+    } else if (error?.code === 'unauthenticated') {
       toast.error("You must be logged in to generate captions.");
     } else if (error?.code === 'resource-exhausted' || (error?.message && error.message.includes('limit_reached'))) {
       toast.error("You've reached your plan limit. Please upgrade or buy a Flex pack.");

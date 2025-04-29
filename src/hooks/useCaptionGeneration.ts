@@ -35,6 +35,7 @@ export const useCaptionGeneration = ({
       try {
         setError(null);
         
+        // Check if user has available requests
         const availability = await checkRequestAvailability();
         
         if (!availability.canMakeRequest) {
@@ -43,13 +44,34 @@ export const useCaptionGeneration = ({
           return;
         }
         
-        const captionResponse = await generateCaptions(
-          selectedPlatform,
-          selectedTone,
-          selectedNiche,
-          selectedGoal,
-          postIdea
-        );
+        // Add retry mechanism for potential network/CORS issues
+        let attempts = 0;
+        const maxAttempts = 2;
+        let captionResponse = null;
+        
+        while (attempts < maxAttempts && !captionResponse) {
+          try {
+            console.log(`Caption generation attempt ${attempts + 1} of ${maxAttempts}`);
+            captionResponse = await generateCaptions(
+              selectedPlatform,
+              selectedTone,
+              selectedNiche,
+              selectedGoal,
+              postIdea
+            );
+            
+            if (!captionResponse) {
+              throw new Error("Empty response received");
+            }
+          } catch (err) {
+            attempts++;
+            if (attempts >= maxAttempts) {
+              throw err;
+            }
+            // Wait before retrying
+            await new Promise(resolve => setTimeout(resolve, 1000));
+          }
+        }
 
         if (captionResponse && captionResponse.captions) {
           setCaptions(captionResponse.captions);
@@ -60,9 +82,15 @@ export const useCaptionGeneration = ({
           setError("Failed to generate captions. Please try again.");
           console.error("Error fetching captions - empty response");
         }
-      } catch (err) {
+      } catch (err: any) {
         console.error("Error fetching captions:", err);
-        setError("An unexpected error occurred. Please try again.");
+        
+        // Provide more specific error messages for different error types
+        if (err?.message?.includes('CORS') || err?.message?.includes('blocked by CORS policy')) {
+          setError("Server connection issue. Please contact support with reference: CORS-ERROR");
+        } else {
+          setError("An unexpected error occurred. Please try again.");
+        }
       } finally {
         setIsGenerating(false);
       }

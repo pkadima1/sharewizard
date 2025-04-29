@@ -21,7 +21,19 @@ export interface GeneratedCaption {
   hashtags: string[];
 }
 
-export const generateCaptions = onCall(async (request) => {
+export const generateCaptions = onCall({
+  // Update CORS configuration to include all possible domains your app might be hosted on
+  cors: [
+    'localhost:5173',
+    'localhost:5174',
+    /engperfecthlc\.web\.app$/,
+    /engperfecthlc\.firebaseapp\.com$/,
+    /engageperfect\.com$/,
+    /preview--.*\.lovable\.app$/,
+    /.*\.lovable\.app$/,
+    '*' // Allow all origins as a fallback
+  ]
+}, async (request) => {
   try {
     const { tone, platform, niche, goal, postIdea } = request.data;
 
@@ -36,7 +48,7 @@ export const generateCaptions = onCall(async (request) => {
     const apiKey = await getOpenAIKey();
     const openai = new OpenAI({ apiKey });
 
-    console.log('Calling OpenAI API with model: gpt-4o-mini');
+    console.log('Calling OpenAI API with model: gpt-4o');
     
     // Create the prompt for OpenAI
     const systemPrompt = `You are the world's best content creator and digital marketing expert. Create 3 engaging ${tone} captions for ${platform} tailored for the ${niche} niche with a goal of ${goal}.`;
