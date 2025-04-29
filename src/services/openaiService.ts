@@ -24,8 +24,8 @@ export const generateCaptions = async (
   try {
     console.log("Generating captions with parameters:", { platform, tone, niche, goal, postIdea });
     
-    // Initialize Firebase Functions
-    const functions = getFunctions();
+    // Initialize Firebase Functions with region explicitly specified
+    const functions = getFunctions(undefined, 'us-central1');
     const generateCaptionsFunction = httpsCallable(functions, 'generateCaptions');
 
     // Prepare data for the function call
@@ -71,22 +71,45 @@ export const generateCaptions = async (
       requests_remaining: data.requests_remaining
     };
   } catch (error: any) {
-    // Handle specific error types
+    // Enhanced error logging
     console.error("Error generating captions:", error);
+    console.error("Error details:", {
+      code: error?.code,
+      message: error?.message,
+      details: error?.details,
+      stack: error?.stack
+    });
     
-    // Specifically check for CORS-related errors
-    if (error?.code === 'functions/cors-error' || 
-        error?.message?.includes('CORS') ||
-        error?.message?.includes('blocked by CORS policy')) {
-      toast.error("Cross-origin request blocked. Please contact support with this error: CORS policy restriction.");
-      console.error("CORS Error Details:", error);
+    // Handle CORS errors specifically and thoroughly
+    if (
+      error?.code === 'functions/cors-error' || 
+      error?.message?.includes('CORS') || 
+      error?.message?.includes('blocked by CORS policy') ||
+      error?.code === 'unavailable' || // Often means network/CORS issues
+      error?.code === 'internal' // Sometimes Firebase wraps CORS errors as internal
+    ) {
+      console.error("CORS or network error detected:", error);
+      
+      // Show a more detailed error message to help users troubleshoot
+      toast.error(
+        "Connection blocked by browser security. Please try: 1) Refreshing the page, 2) Using a different browser, or 3) Contacting support with error code: CORS-ERROR"
+      );
+      
+      // Attempt to log additional details that might help debugging
+      try {
+        const origin = window.location.origin;
+        const host = window.location.host;
+        console.error("Request origin info:", { origin, host });
+      } catch (e) {
+        console.error("Failed to log origin info:", e);
+      }
     } else if (error?.code === 'unauthenticated') {
       toast.error("You must be logged in to generate captions.");
     } else if (error?.code === 'resource-exhausted' || (error?.message && error.message.includes('limit_reached'))) {
       toast.error("You've reached your plan limit. Please upgrade or buy a Flex pack.");
     } else if (error?.code === 'internal') {
       toast.error("Caption generation service error. Please try again later.");
-    } else if (error.message) {
+    } else if (error?.message) {
       toast.error(`Error: ${error.message}`);
     } else {
       toast.error("Failed to generate captions. Please try again.");

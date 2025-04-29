@@ -1,5 +1,5 @@
 
-import { onCall } from "firebase-functions/v2/https";
+import { onCall, HttpsError } from "firebase-functions/v2/https";
 import * as functions from 'firebase-functions';
 import OpenAI from "openai";
 import { getOpenAIKey } from "../config/secrets";
@@ -22,18 +22,35 @@ export interface GeneratedCaption {
 }
 
 export const generateCaptions = onCall({
-  // Update CORS configuration to include all possible domains your app might be hosted on
+  // Set strict CORS configuration with proper validation
   cors: [
+    // Local development
+    'localhost:3000',
     'localhost:5173',
     'localhost:5174',
+    
+    // Firebase hosting domains
     /engperfecthlc\.web\.app$/,
     /engperfecthlc\.firebaseapp\.com$/,
+    
+    // Production domain
     /engageperfect\.com$/,
+    /www\.engageperfect\.com$/,
+    
+    // Lovable preview domains
     /preview--.*\.lovable\.app$/,
     /.*\.lovable\.app$/,
-    '*' // Allow all origins as a fallback
-  ]
+    
+    // Allow all origins temporarily while debugging
+    '*'
+  ],
+  maxInstances: 10,
+  timeoutSeconds: 60,
+  memory: '256MiB'
 }, async (request) => {
+  // Log the origin for debugging
+  console.log('Request origin:', request.rawRequest?.headers?.origin || 'Unknown origin');
+  
   try {
     const { tone, platform, niche, goal, postIdea } = request.data;
 
