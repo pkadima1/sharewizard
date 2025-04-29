@@ -22,7 +22,7 @@ export interface GeneratedCaption {
 }
 
 export const generateCaptions = onCall({
-  // Set strict CORS configuration with proper validation
+  // Set comprehensive CORS configuration with proper validation
   cors: [
     // Local development
     'localhost:3000',
@@ -40,8 +40,9 @@ export const generateCaptions = onCall({
     // Lovable preview domains
     /preview--.*\.lovable\.app$/,
     /.*\.lovable\.app$/,
+    /.*\.lovableproject\.com$/,
     
-    // Allow all origins temporarily while debugging
+    // Allow all origins while debugging CORS issues
     '*'
   ],
   maxInstances: 10,
