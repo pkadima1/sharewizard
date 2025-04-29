@@ -1,0 +1,7 @@
+{
+  "include": [
+    ".eslintrc.js",
+    "eslint.config.js",
+    "src/**/*"
+  ]
+}

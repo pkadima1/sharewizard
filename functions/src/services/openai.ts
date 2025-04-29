@@ -1,15 +1,14 @@
-
-import { onCall, HttpsError } from "firebase-functions/v2/https";
-import * as functions from 'firebase-functions';
+import { onCall } from "firebase-functions/v2/https";
+import * as functions from "firebase-functions";
 import OpenAI from "openai";
-import { getOpenAIKey } from "../config/secrets";
+import { getOpenAIKey } from "../config/secrets.js";
 
 // Type for OpenAI error response
 interface OpenAIErrorResponse {
   status?: number;
   response?: {
     status: number;
-    data: any;
+    data: Record<string, unknown>; // Replace 'any' with a more specific type
   };
   message?: string;
 }
@@ -25,9 +24,9 @@ export const generateCaptions = onCall({
   // Set comprehensive CORS configuration with proper validation
   cors: [
     // Local development
-    'localhost:3000',
-    'localhost:5173',
-    'localhost:5174',
+    "localhost:3000",
+    "localhost:5173",
+    "localhost:5174",
     
     // Firebase hosting domains
     /engperfecthlc\.web\.app$/,
@@ -43,22 +42,22 @@ export const generateCaptions = onCall({
     /.*\.lovableproject\.com$/,
     
     // Allow all origins while debugging CORS issues
-    '*'
+    "*"
   ],
   maxInstances: 10,
   timeoutSeconds: 60,
-  memory: '256MiB'
+  memory: "256MiB"
 }, async (request) => {
   // Log the origin for debugging
-  console.log('Request origin:', request.rawRequest?.headers?.origin || 'Unknown origin');
+  console.log("Request origin:", request.rawRequest?.headers?.origin || "Unknown origin");
   
   try {
     const { tone, platform, niche, goal, postIdea } = request.data;
 
     if (!tone || !platform || !niche || !goal) {
       throw new functions.https.HttpsError(
-        'invalid-argument',
-        'Missing required parameters: tone, platform, niche, goal'
+        "invalid-argument",
+        "Missing required parameters: tone, platform, niche, goal"
       );
     }
 
@@ -66,7 +65,7 @@ export const generateCaptions = onCall({
     const apiKey = await getOpenAIKey();
     const openai = new OpenAI({ apiKey });
 
-    console.log('Calling OpenAI API with model: gpt-4o');
+    console.log("Calling OpenAI API with model: gpt-4o");
     
     // Create the prompt for OpenAI
     const systemPrompt = `You are the world's best content creator and digital marketing expert. Create 3 engaging ${tone} captions for ${platform} tailored for the ${niche} niche with a goal of ${goal}.`;
@@ -99,12 +98,12 @@ export const generateCaptions = onCall({
       response_format: { type: "json_object" }
     });
 
-    console.log('OpenAI API response received');
+    console.log("OpenAI API response received");
     
     // Parse the response
     const content = completion.choices[0].message.content;
     if (!content) {
-      throw new functions.https.HttpsError('internal', 'Empty response from OpenAI');
+      throw new functions.https.HttpsError("internal", "Empty response from OpenAI");
     }
     
     try {
@@ -112,7 +111,7 @@ export const generateCaptions = onCall({
       
       // Check if the response has the expected format
       if (!parsedContent.captions || !Array.isArray(parsedContent.captions)) {
-        throw new functions.https.HttpsError('internal', 'Invalid response format from OpenAI');
+        throw new functions.https.HttpsError("internal", "Invalid response format from OpenAI");
       }
       
       // Return the captions along with a mock count of remaining requests
@@ -124,17 +123,17 @@ export const generateCaptions = onCall({
     } catch (parseError) {
       console.error("JSON parse error:", parseError);
       console.error("Raw content that failed to parse:", content);
-      throw new functions.https.HttpsError('internal', 'Failed to parse response from OpenAI');
+      throw new functions.https.HttpsError("internal", "Failed to parse response from OpenAI");
     }
 
   } catch (error: unknown) {
-    console.error('Error generating captions:', error);
+    console.error("Error generating captions:", error);
     
     // Type guard for OpenAI error response
     const openAIError = error as OpenAIErrorResponse;
     
     if (openAIError.response) {
-      console.error('OpenAI API Error Response:', {
+      console.error("OpenAI API Error Response:", {
         status: openAIError.response.status,
         data: openAIError.response.data
       });
@@ -143,21 +142,21 @@ export const generateCaptions = onCall({
     // Map OpenAI errors to appropriate Firebase errors
     if (openAIError.status === 401 || (openAIError.response?.status === 401)) {
       throw new functions.https.HttpsError(
-        'permission-denied',
-        'Invalid OpenAI API key.'
+        "permission-denied",
+        "Invalid OpenAI API key."
       );
     } else if (openAIError.status === 429 || (openAIError.response?.status === 429)) {
       throw new functions.https.HttpsError(
-        'resource-exhausted',
-        'OpenAI rate limit exceeded. Please try again later.'
+        "resource-exhausted",
+        "OpenAI rate limit exceeded. Please try again later."
       );
     }
     
     // Default error handling with proper type checking
     if (openAIError.message) {
-      throw new functions.https.HttpsError('internal', openAIError.message);
+      throw new functions.https.HttpsError("internal", openAIError.message);
     } else {
-      throw new functions.https.HttpsError('internal', 'An unknown error occurred');
+      throw new functions.https.HttpsError("internal", "An unknown error occurred");
     }
   }
 });

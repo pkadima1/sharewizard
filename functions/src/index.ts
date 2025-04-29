@@ -1,21 +1,16 @@
+/**
+ * Import function triggers from their respective submodules:
+ *
+ * import {onCall} from "firebase-functions/v2/https";
+ * import {onDocumentWritten} from "firebase-functions/v2/firestore";
+ *
+ * See a full list of supported triggers at https://firebase.google.com/docs/functions
+ */
 
-import { onRequest } from "firebase-functions/v2/https";
-import { getOpenAIKey } from "./config/secrets";
-import { generateCaptions } from "./services/openai";
+// Start writing functions
+// https://firebase.google.com/docs/functions/typescript
 
-// Export the test endpoint
-export const testOpenAIKey = onRequest({
-  cors: true // Enable CORS for this test endpoint
-}, async (req, res) => {
-  try {
-    await getOpenAIKey();
-    res.setHeader('Access-Control-Allow-Origin', '*');
-    res.setHeader('Access-Control-Allow-Methods', 'GET, OPTIONS');
-    res.json({ message: "OpenAI API Key retrieved successfully" });
-  } catch (error) {
-    res.status(500).json({ error: "Failed to retrieve OpenAI API key" });
-  }
-});
-
-// Export the caption generator
-export { generateCaptions };
+// export const helloWorld = onRequest((request, response) => {
+//   logger.info("Hello logs!", {structuredData: true});
+//   response.send("Hello from Firebase!");
+// });
